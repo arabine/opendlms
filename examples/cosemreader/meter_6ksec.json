@@ -1,0 +1,25 @@
+{
+	"version": "1.0.0",		
+	"protocol": "hdlc",
+	"device": "none",
+
+	"meter": {
+        "id": "123456"
+	},
+	
+	"modem": {
+	   "init": "AT",
+	   "phone": "0000000000",
+	},
+	
+	"hdlc": {
+		"phy_addr": 18,
+		"address_size": 4,
+		"client": 3,
+		"logical_device": 1,
+	},
+	
+	"cosem": {
+    	 "lls": ">l8w#Q8q"
+	 }
+}

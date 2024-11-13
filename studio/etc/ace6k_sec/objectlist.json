@@ -1,0 +1,17 @@
+{
+	"version": "1.0.0",		
+	"objects": [
+		{
+			"name": "Clock",
+			"logical_name": "0.0.1.0.0.255",
+			"class_id": 8,
+			"attribute_id": 2
+		},
+		{
+			"name": "LoadProfile",
+			"logical_name": "1.0.99.1.0.255",
+			"class_id": 7,
+			"attribute_id": 2
+		}
+	]
+}

@@ -1,0 +1,14 @@
+{
+	"version": "1.0.0",
+
+	"serial": {
+   	  "baudrate": 19200,
+	  "port": "COM38"
+	},
+
+	"ip": {
+	   "transport": "tcp",
+	   "address": "192.168.1.63",
+	   "port": 703
+	}
+}

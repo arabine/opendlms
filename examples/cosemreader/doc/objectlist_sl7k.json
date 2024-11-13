@@ -1,0 +1,23 @@
+{
+	"version": "1.0.0",
+	"objects": [
+		{
+			"name": "LightEOBData",
+			"logical_name": "0.1.98.2.0.255",
+			"class_id": 7,
+			"attribute_id": 2
+		},
+		{
+			"name": "LoadProfile1DataCondensed",
+			"logical_name": "0.0.99.1.2.255",
+			"class_id": 7,
+			"attribute_id": 2
+		},
+		{
+			"name": "AllEnergyRates",
+			"logical_name": "0.1.98.1.0.255",
+			"class_id": 7,
+			"attribute_id": 2
+		}
+	]
+}

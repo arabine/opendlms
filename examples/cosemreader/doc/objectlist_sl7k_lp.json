@@ -1,0 +1,11 @@
+{
+	"version": "1.0.0",
+	"objects": [
+		{
+			"name": "LoadProfile1Data",
+			"logical_name": "0.0.99.1.0.255",
+			"class_id": 7,
+			"attribute_id": 2
+		}
+	]
+}

@@ -1,0 +1,85 @@
+mnu = MENU
+(
+  SUBMENU("File",
+    MENU
+    (
+      ITEM[ACTIVE="NO"]("Open file...", myaction),
+      SEPARATOR(),
+      ITEM[ACTIVE="YES"]("Exit", myaction)
+    )
+  )
+)
+
+# Widget elements: access them by the name
+progress = GAUGE[VALUE="0.34", EXPAND=horizontal]()
+comm_type = LIST[DROPDOWN="YES",EXPAND="YES",VALUE="1",1="Optical", 2="RS485"](myaction)
+comm_port = LIST[DROPDOWN="YES",EXPAND="YES",EDITBOX="YES"](myaction)
+phy_address = TEXT[SIZE="40x",VALUE="16"](myaction)
+user = LIST[DROPDOWN="YES",EXPAND="YES", VALUE="4", 1="1", 2="2", 3="3", 4="4", 5="16"](myaction)
+auth = LIST[DROPDOWN="YES",EXPAND="YES",VALUE="2",1="No", 2="LLS"](myaction)
+password = TEXT[SIZE="100x",VALUE=""](myaction)
+highspeed = TOGGLE[VALUE="OFF"]("RS485 high speed", myaction)
+button_start = BUTTON[SIZE="60x"]("Start", myaction)
+button_exit = BUTTON[SIZE="60x"]("Exit", myaction)
+
+# Dialog layout
+dlg = DIALOG[TITLE="DLMS/Cosem firmware upgrade",MENU="mnu"]
+(
+  VBOX[GAP="5",ALIGNMENT="ARIGHT",MARGIN="2x2"]
+  (
+    HBOX
+    (
+      FRAME[TITLE="Communication parameters"]
+      (
+        VBOX
+        (
+			HBOX
+			(
+				LABEL("Type"),
+				comm_type
+			),
+			HBOX
+			(
+				LABEL("Port"),
+				comm_port
+			),
+			HBOX
+			(
+				LABEL("HDLC address"),
+				phy_address
+			),
+			HBOX
+			(
+				LABEL("User"),
+				user
+			),
+			HBOX
+			(
+				LABEL("Authentication"),
+				auth
+			),
+			HBOX
+			(
+				LABEL("Password"),
+				password
+			),
+			highspeed,
+			FILL()
+        )
+      ),
+	  FRAME[TITLE="Output logs"]
+      (
+        VBOX
+        (
+          MULTILINE[SIZE="200x40",EXPAND="YES",VALUE=""](myaction)
+        )
+      )
+    ),
+	HBOX
+	(
+		progress,
+		button_start
+	),
+	button_exit
+  )
+)

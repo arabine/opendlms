@@ -1,0 +1,25 @@
+{
+	"version": "1.0.0",		
+	"objects": [
+                {
+                        "name": "LoadProfile1ChannelParameters",
+                        "logical_name": "0.0.136.0.2.255",
+                        "class_id": 1,
+                        "attribute_id": 2
+                },
+               {
+                        "name": "LoadProfile2ChannelParameters",
+                        "logical_name": "0.0.136.1.2.255",
+                        "class_id": 1,
+                        "attribute_id": 2
+                },
+		{
+                        "name": "ActivityCalendar",
+                        "logical_name": "0.0.13.0.0.255",
+                        "class_id": 20,
+                        "attribute_id": 0
+                }
+
+
+	]
+}

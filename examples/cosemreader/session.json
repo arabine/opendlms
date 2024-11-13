@@ -1,0 +1,40 @@
+{
+    "version": "1.0.0",
+
+    "session": {
+        "phy_layer": "serial",
+
+        "modem": {
+            "enable": false,
+            "init": "AT",
+            "phone": "0631500899"
+        },
+
+        "retries": 1,
+
+        "timeouts": {
+            "dial": 90,
+            "connect": 5,
+            "request": 5
+        }
+    },
+
+    "meters": [
+        {
+            "id": "saphir0899",
+            "transport": "hdlc",
+            "hdlc": {
+                "phy_addr": 17,
+                "address_size": 4,
+                "test_addr": false
+            },
+            "cosem": {
+                "auth_level": "LOW_LEVEL_SECURITY",
+                "auth_password": "ABCDEFGH",
+				"auth_hls_secret": "000102030405060708090A0B0C0D0E0F",
+                "client": 1,
+                "logical_device": 1
+            }
+        }
+    ]
+}

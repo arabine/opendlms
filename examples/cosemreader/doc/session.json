@@ -1,0 +1,34 @@
+{
+	"version": "1.0.0",
+    
+    "session": {
+        "phy_layer": "serial",
+        "modem": true,
+        "init": "AT",
+        "phone": "0645938890",
+        "retries": 1,
+        "test_hdlc": false,
+        "timeout_dial": 90,
+        "timeout_connect": 5,
+        "timeout_request": 5,
+    },
+
+	"meters": [
+        {
+            "id": "sl7k8890",
+            "llc": {
+                "type": "hdlc",
+                "client": 1,
+                "logical_device": 1
+            },
+            "hdlc": {
+                "phy_addr": 17,
+                "address_size": 4,
+            },
+            "cosem": {
+                "auth_level": "LOW_LEVEL_SECURITY",
+                "auth_value": "ABCDEFGH",
+            }
+        }
+    ]
+}

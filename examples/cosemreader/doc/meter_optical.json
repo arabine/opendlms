@@ -1,0 +1,25 @@
+{
+	"version": "1.0.0",
+	"protocol": "hdlc",
+	"device": "none",
+
+	"meter" {
+		"id": "sl7k_r1"
+	},
+	
+	"modem": {
+	   "init": "AT",
+	   "phone": "0645938890"
+	},
+
+	"hdlc": {
+	   "phy_addr": 17,
+	   "address_size": 4,
+	   "client": 1,
+	  "logical_device": 1
+	},
+
+	"cosem": {
+    	 "lls": "ABCDEFGH"
+	 }
+}

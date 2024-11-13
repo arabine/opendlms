@@ -1,0 +1,317 @@
+9.4.2.2       Registered COSEM names
+
+    Within an OSI  environment, many different types  of network objects must be  identified  with globally
+    unambiguous   names.   These   network   objects   include   abstract   syntaxes,   transfer   syntaxes,
+    application  contexts,  authentication  mechanism  names,  etc.  Names  for  these  objects  in  most  cases
+    are  assigned  by  the  committee  developing  the  particular  basic  ISO  standard  or  by  implementers’
+    workshops,  and  should  be  registered.  For  DLMS/COSEM,  these  object  names  are  assigned  by  the
+    DLMS UA, and are specified below.
+
+    The  decision  no.  1999.01846  of  OFCOM,  Switzerland,  attributes  the  following  prefix  for  object
+    identifiers specified by the DLMS User Association.
+
+    { joint-iso-ccitt(2) country(16) country-name(756) identified-organisation(5) DLMS-UA(8) }
+
+    For DLMS/COSEM, object identifiers are specified for naming the following items:
+        --> COSEM application context names;
+        --> COSEM authentication mechanism names;
+        --> cryptographic algorithm ID-s.
+
+ExceptionResponse ::= SEQUENCE
+{
+    state-error                        [0] IMPLICIT ENUMERATED
+    {
+        service-not-allowed                 (1),
+        service-unknown                     (2)
+    },
+    service-error                      [1] IMPLICIT ENUMERATED
+    {
+        operation-not-possible              (1),
+        service-not-supported               (2),
+        other-reason                        (3)
+    }
+}
+
+Data-Access-Result ::= ENUMERATED
+{
+    success                            (0),
+    hardware-fault                     (1),
+    temporary-failure                  (2),
+    read-write-denied                  (3),
+    object-undefined                   (4),
+    object-class-inconsistent          (9),
+    object-unavailable                 (11),
+    type-unmatched                     (12),
+    scope-of-access-violated           (13),
+    data-block-unavailable             (14),
+    long-get-aborted                   (15),
+    no-long-get-in-progress            (16),
+    long-set-aborted                   (17),
+    no-long-set-in-progress            (18),
+    data-block-number-invalid          (19),
+    other-reason                       (250)
+}
+
+Action-Result ::= ENUMERATED
+{
+    success                            (0),
+    hardware-fault                     (1),
+    temporary-failure                  (2),
+    read-write-denied                  (3),
+    object-undefined                   (4),
+    object-class-inconsistent          (9),
+    object-unavailable                 (11),
+    type-unmatched                     (12),
+    scope-of-access-violated           (13),
+    data-block-unavailable             (14),
+    long-action-aborted                (15),
+    no-long-action-in-progress         (16),
+    other-reason                       (250)
+}
+
+
+
+Get-Request ::= CHOICE
+{
+    get-request-normal                 [1] IMPLICIT    Get-Request-Normal,
+    get-request-next                   [2] IMPLICIT    Get-Request-Next,
+    get-request-with-list              [3] IMPLICIT    Get-Request-With-List
+}
+
+Get-Request-Normal ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-attribute-descriptor         Cosem-Attribute-Descriptor,
+    access-selection                   Selective-Access-Descriptor OPTIONAL
+}
+
+Selective-Access-Descriptor ::= SEQUENCE
+{
+    access-selector                    Unsigned8,
+    access-parameters  Data
+}
+
+-- IEC 61334-6:2000 Clause 5 specifies that bits of any byte are numbered from 1 to 8,
+-- where bit 8 is the most significant.
+-- In the DLMS UA Green Book, bits are numbered from 0 to 7.
+-- Use of Invoke-Id-And-Priority
+--    invoke-id                bits 0-3
+--    reserved                 bits 4-5
+--    service-class            bit  6        0 = Unconfirmed, 1 = Confirmed
+--    priority                 bit  7        0 = Normal, 1 = High
+Invoke-Id-And-Priority ::=             Unsigned8
+
+
+Cosem-Attribute-Descriptor ::= SEQUENCE
+{
+    class-id                           Cosem-Class-Id,
+    instance-id                        Cosem-Object-Instance-Id,
+    attribute-id                       Cosem-Object-Attribute-Id
+}
+
+Cosem-Class-Id ::=                     Unsigned16
+Cosem-Object-Instance-Id ::=           OCTET STRING (SIZE(6))
+Cosem-Object-Attribute-Id ::=          Integer8
+Cosem-Object-Method-Id ::=             Integer8
+
+Get-Response-Normal ::= SEQUENCE
+{
+invoke-id-and-priority             Invoke-Id-And-Priority,
+result                             Get-Data-Result
+}
+
+Get-Data-Result ::= CHOICE
+{
+data                                [0] Data,
+data-access-result                  [1] IMPLICIT Data-Access-Result
+}
+
+C401//GET.response.normal
+81// invoke-id and priority
+00// Get-Data-Result choice data
+0906// octet string (6)
+0000010000FF// logical name, OBIS code of the clock
+
+
+Get-Response ::= CHOICE
+{
+    get-response-normal                [1] IMPLICIT    Get-Response-Normal,
+    get-response-with-datablock        [2] IMPLICIT    Get-Response-With-Datablock,
+    get-response-with-list             [3] IMPLICIT    Get-Response-With-List
+}
+
+Get-Response-With-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    result                             DataBlock-G
+}
+
+DataBlock-G ::= SEQUENCE     -- G == DataBlock for the GET-response
+{
+    last-block                         BOOLEAN,
+    block-number                       Unsigned32,
+    result  CHOICE
+    {
+        raw-data                       [0] IMPLICIT OCTET STRING,
+        data-access-result             [1] IMPLICIT Data-Access-Result
+    }
+}
+
+
+Set-Request ::= CHOICE
+{
+    set-request-normal                         [1] IMPLICIT  Set-Request-Normal,
+    set-request-with-first-datablock           [2] IMPLICIT  Set-Request-With-First-Datablock,
+    set-request-with-datablock                 [3] IMPLICIT  Set-Request-With-Datablock,
+    set-request-with-list                      [4] IMPLICIT  Set-Request-With-List,
+    set-request-with-list-and-first-datablock  [5] IMPLICIT  Set-Request-With-List-And-First-Datablock
+}
+Set-Request-Normal ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-attribute-descriptor         Cosem-Attribute-Descriptor,
+    access-selection                   Selective-Access-Descriptor OPTIONAL,
+    value                              Data
+}
+Set-Request-With-First-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-attribute-descriptor         Cosem-Attribute-Descriptor,
+    access-selection                   [0] IMPLICIT Selective-Access-Descriptor OPTIONAL,
+    datablock                          DataBlock-SA
+}
+Set-Request-With-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    datablock                          DataBlock-SA
+}
+Set-Request-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    attribute-descriptor-list          SEQUENCE OF Cosem-Attribute-Descriptor-With-Selection,
+    value-list                         SEQUENCE OF Data
+}
+Set-Request-With-List-And-First-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    attribute-descriptor-list          SEQUENCE OF Cosem-Attribute-Descriptor-With-Selection,
+    datablock                          DataBlock-SA
+}
+Set-Response ::= CHOICE
+{
+    set-response-normal                     [1] IMPLICIT   Set-Response-Normal,
+    set-response-datablock                  [2] IMPLICIT   Set-Response-Datablock,
+    set-response-last-datablock             [3] IMPLICIT   Set-Response-Last-Datablock,
+    set-response-last-datablock-with-list   [4] IMPLICIT   Set-Response-Last-Datablock-With-List,
+    set-response-with-list                  [5] IMPLICIT   Set-Response-With-List
+}
+Set-Response-Normal ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    result                             Data-Access-Result
+}
+Set-Response-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    block-number                       Unsigned32
+}
+Set-Response-Last-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    result                             Data-Access-Result,
+    block-number                       Unsigned32
+}
+Set-Response-Last-Datablock-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    result                             SEQUENCE OF Data-Access-Result,
+    block-number                       Unsigned32
+}
+Set-Response-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority   Invoke-Id-And-Priority,
+    result                             SEQUENCE OF Data-Access-Result
+}
+
+---------------------------------------------------------------------------------
+
+Action-Request ::= CHOICE
+{
+    action-request-normal                      [1] IMPLICIT Action-Request-Normal,
+    action-request-next-pblock                 [2] IMPLICIT Action-Request-Next-Pblock,
+    action-request-with-list                   [3] IMPLICIT Action-Request-With-List,
+    action-request-with-first-pblock           [4] IMPLICIT Action-Request-With-First-Pblock,
+    action-request-with-list-and-first-pblock  [5] IMPLICIT Action-Request-With-List-And-First-Pblock,
+    action-request-with-pblock                 [6] IMPLICIT Action-Request-With-Pblock
+}
+
+Action-Request-Normal ::= SEQUENCE
+{
+    invoke-id-and-priority              Invoke-Id-And-Priority,
+    cosem-method-descriptor             Cosem-Method-Descriptor,
+    method-invocation-parameters        Data OPTIONAL
+}
+
+Action-Request-Next-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    block-number                       Unsigned32
+}
+
+Action-Request-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-method-descriptor-list       SEQUENCE OF Cosem-Method-Descriptor,
+    method-invocation-parameters       SEQUENCE OF Data
+}
+Action-Request-With-First-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-method-descriptor            Cosem-Method-Descriptor,
+    pblock                             DataBlock-SA
+}
+Action-Request-With-List-And-First-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-method-descriptor-list       SEQUENCE OF Cosem-Method-Descriptor,
+    pblock                             DataBlock-SA
+}
+Action-Request-With-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    pblock                             DataBlock-SA
+}
+Action-Response ::= CHOICE
+{
+    action-response-normal             [1] IMPLICIT    Action-Response-Normal,
+    action-response-with-pblock        [2] IMPLICIT    Action-Response-With-Pblock,
+    action-response-with-list          [3] IMPLICIT    Action-Response-With-List,
+    action-response-next-pblock        [4] IMPLICIT    Action-Response-Next-Pblock
+}
+Action-Response-Normal ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    single-response                    Action-Response-With-Optional-Data
+}
+
+Action-Response-With-Optional-Data ::= SEQUENCE
+{
+    result                             Action-Result,
+    return-parameters                  Get-Data-Result  OPTIONAL
+}
+
+Action-Response-With-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    pblock                             DataBlock-SA
+}
+Action-Response-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    list-of-responses                  SEQUENCE OF Action-Response-With-Optional-Data
+}
+Action-Response-Next-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    block-number                       Unsigned32
+}
