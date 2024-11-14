@@ -17,7 +17,8 @@ csm_db_code db_cosem_associations_func(csm_array *in, csm_array *out, csm_reques
     else
     {
         // Action
-        if (csm_axdr_rd_octetstring(in))
+        uint32_t size = 0;
+        if (csm_axdr_rd_octetstring(in, &size))
         {
             CSM_LOG("[DB] Reply to HLS authentication");
             int ret = csm_channel_hls_pass3(in, request);

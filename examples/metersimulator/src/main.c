@@ -197,7 +197,7 @@ int main(int argc, const char * argv[])
     buff.max_size = BUF_SIZE;
 
     csm_init();
-    printf("Starting DLMS/Cosem example\r\nCosem library version: %s\r\n\r\n", CSM_DEF_LIB_VERSION);
+    printf("Starting DLMS/Cosem meter simulator\r\nCosem library version: %s\r\n\r\n", CSM_DEF_LIB_VERSION);
 
     return tcp_server_init(tcp_data_handler, tcp_conn_handler, &buff, TCP_PORT);
 }

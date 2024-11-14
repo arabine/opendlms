@@ -8,7 +8,7 @@
 #endif
 
 
-#ifdef USE_UNIX_OS
+#ifdef __linux__
 
 #include <sys/select.h>
 #include <arpa/inet.h>
@@ -169,7 +169,7 @@ static void app(data_handler data_func, conn_handler conn_func, memory_t *b, int
    /* add the connection socket */
    FD_SET(sock, &master_set);
 
-   puts("[TCP Server] TCP Server started");
+   printf("[TCP Server] TCP Server started on TCP port: %d\r\n", tcp_port);
 
     while(1)
     {

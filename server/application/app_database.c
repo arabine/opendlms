@@ -1,9 +1,11 @@
 
-#include "db_cosem_object_list.h"
+
 #include "csm_config.h"
-
 #include "app_calendar.h"
+#include "app_database.h"
 
+static const db_element **gDatabase = NULL;
+static uint32_t gDatabaseSize = 0;
 
 void csm_print_obis(const csm_object_t *data)
 {
@@ -75,9 +77,9 @@ static int csm_db_get_object(csm_db_request *db_request, db_obj_handle *handle)
 {
     uint8_t found = FALSE;
 
-    for (uint8_t i = 0U; (i < NUMBER_OF_DATABASES) && (!found); i++)
+    for (uint8_t i = 0U; (i < gDatabaseSize) && (!found); i++)
     {
-        const db_element *obj_list = &gDataBaseList[i];
+        const db_element *obj_list = gDatabase[i];
 
         // Loop on all cosem object in list
         for (uint8_t object_index = 0U; (object_index < obj_list->nb_objects) && (!found); object_index++)
@@ -111,7 +113,7 @@ csm_db_code csm_db_access_func(csm_array *in, csm_array *out, csm_request *reque
     if (csm_db_get_object(&request->db_request, &handle))
     {
         // Ok, call the database main function
-        const db_element *db_element = &gDataBaseList[handle.db_index];
+        const db_element *db_element = gDatabase[handle.db_index];
         if (db_element->handler != NULL)
         {
             code = db_element->handler(in, out, request);
