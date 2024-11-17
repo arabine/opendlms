@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug unit tests",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/build/cosemtest", 
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb", 
+            "setupCommands": [
+                {
+                    "description": "Activer le format d'impression des chaînes dans GDB",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build",
+            "logging": {
+                "engineLogging": false,
+                "trace": false,
+                "traceResponse": false
+            }
+        }
+    ]
+}

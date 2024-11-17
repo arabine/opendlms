@@ -120,18 +120,18 @@ typedef struct
     uint8_t guek[16];
     uint8_t gbek[16];
     uint8_t gak[16];
-    uint8_t lls_password[CSM_DEF_LLS_SIZE]; // Password.
+    uint8_t lls_password[CSM_DEF_LLS_MAX_SIZE]; // Password.
     uint8_t mechanism_id;
     uint8_t security_policy;
 } cfg_cosem;
 
 cfg_cosem test_conf;
 
-static const uint8_t default_password[CSM_DEF_LLS_SIZE] = { 0U, 0U, 0U, 0U, 0U, 0U };
+static const uint8_t default_password[CSM_DEF_LLS_MAX_SIZE] = { 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U };
 
 void csm_sys_init()
 {
-    for (uint8_t i = 0U; i < CSM_DEF_LLS_SIZE; i++)
+    for (uint8_t i = 0U; i < CSM_DEF_LLS_MAX_SIZE; i++)
     {
         test_conf.lls_password[i] = default_password[i];
     }
@@ -143,7 +143,7 @@ int csm_sys_set_lls_password(uint8_t sap, uint8_t *buf, uint8_t size)
     int valid = TRUE;
     (void) sap;
 
-    uint8_t max_size = (size > CSM_DEF_LLS_SIZE) ? CSM_DEF_LLS_SIZE : size;
+    uint8_t max_size = (size > CSM_DEF_LLS_MAX_SIZE) ? CSM_DEF_LLS_MAX_SIZE : size;
 
     for (uint8_t i = 0U; i < max_size; i++)
     {
@@ -157,7 +157,7 @@ void csm_hal_get_lls_password(uint8_t sap, uint8_t *buf, uint8_t max_size)
 {
     (void) sap;
 
-    uint8_t size = (CSM_DEF_LLS_SIZE > max_size) ? max_size : CSM_DEF_LLS_SIZE;
+    uint8_t size = (CSM_DEF_LLS_MAX_SIZE > max_size) ? max_size : CSM_DEF_LLS_MAX_SIZE;
 
     for (uint8_t i = 0U; i < size; i++)
     {

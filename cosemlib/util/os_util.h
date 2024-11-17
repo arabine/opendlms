@@ -107,13 +107,24 @@ void hex2bin(const char *in, char* out, int size);
 void byte_to_hex(const char byte, char *out);
 void print_hex(const char *buf, int size);
 
-
+#ifdef DEBUG
 #define debug_print(fmt, ...) \
-        do { if (DEBUG) fprintf(stderr, "%s:%d:%s(): " fmt, __FILE__, \
+        do { fprintf(stderr, "%s:%d:%s(): " fmt, __FILE__, \
                                 __LINE__, __func__, __VA_ARGS__); } while (0)
 
 #define debug_puts(str) \
-        do { if (DEBUG) fprintf(stderr, str); } while (0)
+        do { fprintf(stderr, str); } while (0)
+
+#else 
+
+#define debug_print(fmt, ...) \
+        do { } while (0)
+
+#define debug_puts(str) \
+        do { } while (0)
+
+
+#endif // DEBUG
 
 #ifdef __cplusplus
 }

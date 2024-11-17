@@ -95,6 +95,8 @@ int tcp_data_handler(uint8_t channel, memory_t *b, uint32_t payload_size)
         // Sanity check of the packet
         if ((payload_size == (apdu_size + COSEM_WRAPPER_SIZE)) &&(version == COSEM_WRAPPER_VERSION))
         {
+            print_hex((uint8_t *)&b->data[BUF_APDU_OFFSET], apdu_size);
+
             // Then decode the packet, the reply, if any is located in the buffer
             // The reply is valid if the return code is > 0
             csm_array_init(&packet, (uint8_t *)&b->data[0], b->max_size, apdu_size, BUF_APDU_OFFSET);

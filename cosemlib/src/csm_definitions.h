@@ -20,7 +20,10 @@ extern "C" {
 #include "csm_array.h"
 
 #define CSM_DEF_LIB_VERSION         "1.0"
-#define CSM_DEF_LLS_SIZE            8U
+
+#define CSM_DEF_LLS_MAX_SIZE            8U
+#define CSM_DEF_LLS_MIN_SIZE            1U
+
 #define CSM_DEF_APP_TITLE_SIZE      8U
 #define CSM_DEF_CHALLENGE_SIZE      64U
 #define CSM_DEF_MAX_HLS_SIZE        (1U + 16U + CSM_DEF_CHALLENGE_SIZE) // SC + AK + Challenge

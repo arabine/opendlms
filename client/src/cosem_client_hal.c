@@ -176,7 +176,7 @@ typedef struct
     uint8_t guek[16];
     uint8_t gbek[16];
     uint8_t gak[16];
-    uint8_t lls_password[CSM_DEF_LLS_SIZE]; // Password.
+    uint8_t lls_password[CSM_DEF_LLS_MAX_SIZE]; // Password.
     uint8_t mechanism_id;
     uint8_t security_policy;
 } cfg_cosem;

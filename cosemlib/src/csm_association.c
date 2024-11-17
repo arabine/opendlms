@@ -248,7 +248,7 @@ static csm_acse_code acse_auth_value_decoder(csm_asso_state *state, csm_ber *ber
     if (csm_ber_decode(ber, array))
     {
         // Can be a challenge or a LLS
-        if ((ber->length.length >= (CSM_DEF_LLS_SIZE)) &&
+        if ((ber->length.length >= (CSM_DEF_LLS_MIN_SIZE)) &&
             (ber->length.length <= (CSM_DEF_CHALLENGE_SIZE)))
         {
             if (ber->tag.tag == (TAG_CONTEXT_SPECIFIC))
@@ -552,7 +552,7 @@ static csm_acse_code acse_requirements_decoder(csm_asso_state *state, csm_ber *b
 static csm_acse_code acse_skip_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
 {
     (void) state;
-    if (ber->tag.isPrimitive)
+    if (!ber->tag.isPrimitive)
     {
         // This BER contains data that is not managed
         // advance the pointer to the next BER header
@@ -569,22 +569,22 @@ static const csm_asso_dec aarq_decoder_chain[] =
     {CSM_ASSO_PROTO_VER,                ACSE_OPT, acse_proto_version_decoder},
     {CSM_ASSO_APP_CONTEXT_NAME,         ACSE_ALWAYS, acse_app_context_decoder},
     {CSM_BER_TYPE_OBJECT_IDENTIFIER,    ACSE_ALWAYS, acse_oid_decoder},
-    {CSM_ASSO_CALLED_AP_TITLE,          ACSE_SKIP, acse_skip_decoder},
-    {CSM_ASSO_CALLED_AE_QUALIFIER,      ACSE_SKIP, acse_skip_decoder},
-    {CSM_ASSO_CALLED_AP_INVOC_ID,       ACSE_SKIP, acse_skip_decoder},
-    {CSM_BER_TYPE_INTEGER,              ACSE_SKIP, acse_skip_decoder},
-    {CSM_ASSO_CALLED_AE_INVOC_ID,       ACSE_SKIP, acse_skip_decoder},
-    {CSM_BER_TYPE_INTEGER,              ACSE_SKIP, acse_skip_decoder},
+    // {CSM_ASSO_CALLED_AP_TITLE,          ACSE_SKIP, acse_skip_decoder},
+    // {CSM_ASSO_CALLED_AE_QUALIFIER,      ACSE_SKIP, acse_skip_decoder},
+    // {CSM_ASSO_CALLED_AP_INVOC_ID,       ACSE_SKIP, acse_skip_decoder},
+    // {CSM_BER_TYPE_INTEGER,              ACSE_SKIP, acse_skip_decoder},
+    // {CSM_ASSO_CALLED_AE_INVOC_ID,       ACSE_SKIP, acse_skip_decoder},
+    // {CSM_BER_TYPE_INTEGER,              ACSE_SKIP, acse_skip_decoder},
     {CSM_ASSO_CALLING_AP_TITLE,         ACSE_OPT, acse_client_system_title_decoder},
-    {CSM_ASSO_CALLING_AE_QUALIFIER,     ACSE_SKIP, acse_skip_decoder},
-    {CSM_ASSO_CALLING_AP_INVOC_ID,      ACSE_SKIP, acse_skip_decoder},
-    {CSM_BER_TYPE_INTEGER,              ACSE_SKIP, acse_skip_decoder},
-    {CSM_ASSO_CALLING_AE_INVOC_ID,      ACSE_SKIP, acse_skip_decoder},
-    {CSM_BER_TYPE_INTEGER,              ACSE_SKIP, acse_skip_decoder},
+    // {CSM_ASSO_CALLING_AE_QUALIFIER,     ACSE_SKIP, acse_skip_decoder},
+    // {CSM_ASSO_CALLING_AP_INVOC_ID,      ACSE_SKIP, acse_skip_decoder},
+    // {CSM_BER_TYPE_INTEGER,              ACSE_SKIP, acse_skip_decoder},
+    // {CSM_ASSO_CALLING_AE_INVOC_ID,      ACSE_SKIP, acse_skip_decoder},
+    // {CSM_BER_TYPE_INTEGER,              ACSE_SKIP, acse_skip_decoder},
     {CSM_ASSO_SENDER_ACSE_REQU,         ACSE_OPT, acse_req_decoder},
     {CSM_ASSO_REQ_MECHANISM_NAME,       ACSE_OPT, acse_oid_decoder},
     {CSM_ASSO_CALLING_AUTH_VALUE,       ACSE_OPT, acse_client_auth_value_decoder},
-    {CSM_ASSO_IMPLEMENTATION_INFO,      ACSE_OPT, acse_skip_decoder},
+    // {CSM_ASSO_IMPLEMENTATION_INFO,      ACSE_OPT, acse_skip_decoder},
     {CSM_ASSO_USER_INFORMATION,         ACSE_OPT, acse_initiate_request_decoder}
 };
 
@@ -1070,36 +1070,39 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array, uint8_t tag)
 
         if (tag == CSM_ASSO_AARQ)
         {
+            CSM_ERR("[ACSE] AARQ");
             codec = &aarq_decoder_chain[0];
             size = CSM_ACSE_AARQ_DECODER_CHAIN_SIZE;
         }
-
-        // Main decoding loop
-        ret = csm_ber_decode(&ber, array);
-        uint8_t decoder_index = 0U;
-        do
+        else
         {
+            CSM_ERR("[ACSE] AARE");
+        }
+
+        int eat_bytes = TRUE;
+        for (uint8_t decoder_index = 0U; (decoder_index < size) && ret; decoder_index++)
+        {
+            if (eat_bytes)
+            {
+                ret = csm_ber_decode(&ber, array);
+            }
+
             if (ret)
             {
                 if (ber.tag.tag == codec[decoder_index].tag)
                 {
                     ret = FALSE;
+                    eat_bytes = TRUE;
                     if ((codec[decoder_index].extract_func != NULL))
                     {
-                        ret = codec[decoder_index].extract_func(state, &ber, array);
-                        if (!ret)
+                        csm_acse_code acse_ret = codec[decoder_index].extract_func(state, &ber, array);
+                        if (acse_ret != CSM_ACSE_OK)
                         {
                             CSM_ERR("Extract field error!");
                         }
-                    }
-
-                    if ((ret) && (decoder_index < size))
-                    {
-                        // Continue decoding BER
-                        ret = csm_ber_decode(&ber, array);
-                        if (!ret)
+                        else
                         {
-                            CSM_ERR("BER decoding error!");
+                            ret = TRUE;
                         }
                     }
                 }
@@ -1107,8 +1110,8 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array, uint8_t tag)
                 {
                     if (codec[decoder_index].context == ACSE_OPT)
                     {
-                        CSM_ERR("Skipping optional field...");
-                        ret = TRUE; // normal error (optional field)
+                        CSM_LOG("Optional field not found");
+                        eat_bytes = FALSE;
                     }
                     else if ((state->auth_level < CSM_AUTH_LOWEST_LEVEL) && (codec[decoder_index].context == ACSE_SEC))
                     {
@@ -1116,14 +1119,18 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array, uint8_t tag)
                     }
                     else
                     {
-                        CSM_ERR("Decoded tag: %d (0x%X), expected tag: %d (0x%X)", ber.tag.tag, ber.tag.tag, codec[decoder_index].tag, codec[decoder_index].tag);
+                        (void) csm_array_reader_jump(array, ber.length.length);
+                        CSM_LOG("[ACSE] Skipped tag: %d", ber.tag.tag);
+                        //CSM_ERR("Decoded tag: %d (0x%X), expected tag: %d (0x%X)", ber.tag.tag, ber.tag.tag, codec[decoder_index].tag, codec[decoder_index].tag);
                     }
                 }
             }
+            else
+            {
+                CSM_ERR("BER decoding error!");
+            }
 
-            decoder_index++;
         }
-        while ((decoder_index < size) && ret);
     }
 
     return ret;
@@ -1156,7 +1163,7 @@ int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag)
                 if ((codec[i].insert_func != NULL) && (codec[i].context != ACSE_SKIP))
                 {
                     // Don't encode some fields when no security is required
-                    if ((state->auth_level == CSM_AUTH_LOWEST_LEVEL) && (codec[i].context == ACSE_SEC))
+                    if ((state->auth_level <= CSM_AUTH_LOW_LEVEL) && (codec[i].context == ACSE_SEC))
                     {
                         continue;
                     }

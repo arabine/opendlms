@@ -350,15 +350,36 @@ TEST_CASE( "HLS2-SHA256", "[HLS2-SHA256-TestVector]" )
     TestVectorHLS2Saphir();
 }
 
-
 TEST_CASE( "AARQ-Saphir-Decoder", "[AARQ-Decoder]" )
 {
     puts("\r\n--------------------------  COSEM AARQ Saphir Decoder 1  --------------------------\r\n");
     AARQDecoder(aarq_saphir_enerdis, sizeof(aarq_saphir_enerdis));
 }
 
-TEST_CASE( "AARE-Saphir-Decoder", "[AARQ-Decoder]" )
+TEST_CASE( "AARE-Saphir-Decoder", "[AARE-Decoder]" )
 {
-    puts("\r\n--------------------------  COSEM AARE Saphir Decoder 1  --------------------------\r\n");
+    puts("\r\n--------------------------  COSEM AARE Saphir Decoder 2  --------------------------\r\n");
     AAREDecoder(aare_saphir_enerdis, sizeof(aare_saphir_enerdis));
 }
+
+// From https://github.com/u9n/dlms-cosem
+
+static const char aarq_python_lib[] = "6029A109060760857405080101A60A0408757469E9435A4E0ABE10040E01000000065F1F040020525FFFFF";
+
+TEST_CASE("AARQ-DLMS-Cosem-Python-Library", "[AARQ-Decoder]" )
+{
+    puts("\r\n--------------------------  COSEM AARQ Python DLMS/Cosem library  --------------------------\r\n");
+    AARQDecoder(aarq_python_lib, sizeof(aarq_python_lib));
+}
+
+static const char aarq_icube_ezreader[] = "6031A1090607608574050801018A0207808B0760857405080201AC058003AAAAAABE10040E01000000065F1F040060FEDFFFFF";
+// LLS with password AAAAAA
+// ICube: https://icube.ch/ezreader/ezreader.html
+TEST_CASE("AARQ-ICube-EZReader", "[AARQ-Decoder]" )
+{
+    puts("\r\n--------------------------  COSEM AARQ ICube EZReader  --------------------------\r\n");
+    AARQDecoder(aarq_icube_ezreader, sizeof(aarq_icube_ezreader));
+}
+
+
+

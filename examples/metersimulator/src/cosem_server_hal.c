@@ -119,26 +119,17 @@ int csm_sys_gcm_finish(uint8_t channel, uint8_t *tag)
     return TRUE;
 }
 
+static const uint8_t default_password[CSM_DEF_LLS_MAX_SIZE] = { 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U };
 
 void csm_hal_get_lls_password(uint8_t sap, uint8_t *array, uint8_t max_size)
 {
     (void) sap;
     (void) array;
 
-    if (max_size == CSM_DEF_LLS_SIZE)
+    if (max_size == CSM_DEF_LLS_MAX_SIZE)
     {
         // FIXME when the file system will be here
-        /*
-        for (uint32_t i = 0U; i < CFG_COSEM_NB_ASSOS; i++)
-        {
-            if (sap == cfg_cosem_passwords[i].sap)
-            {
-                int ret = memcmp(buf, cfg_cosem_passwords[i].lls_password, size);
-                valid = (ret == 0) ? TRUE : FALSE;
-                break;
-            }
-        }
-        */
+        int ret = memcmp(array, default_password, sizeof(default_password));
     }
 }
 
@@ -185,7 +176,7 @@ typedef struct
     uint8_t guek[16];
     uint8_t gbek[16];
     uint8_t gak[16];
-    uint8_t lls_password[CSM_DEF_LLS_SIZE]; // Password.
+    uint8_t lls_password[CSM_DEF_LLS_MAX_SIZE]; // Password.
     uint8_t mechanism_id;
     uint8_t security_policy;
 } cfg_cosem;
