@@ -39,16 +39,16 @@ This Cosem stack has the following goals :
 - `client`: specific utilities to write a DLMS/Cosem client
 - `server`: specific utilities to write a DLMS/Cosem server
 - `examples`: Client/server examples
+- `tests`: Unit tests for the protocol with raw frames and application objects
 
 
 # How to build
 
 You must have CMake and a C/C++ compiler. Examples generate stand alone executables, other repositories generate static libraries.
 
-Example:
+The rop level cmake file will build everything.
 
 ```
-cd cosemlib
 mkdir build
 cd build
 cmake ..

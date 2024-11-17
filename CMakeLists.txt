@@ -1,21 +1,19 @@
-# Version minimale de CMake
 cmake_minimum_required(VERSION 3.10)
 
-# Nom du projet
-project(cosemtest LANGUAGES C CXX)
+project(opendlms)
 
-add_subdirectory(cosemlib)
+include(ExternalProject)
 
-# Ajouter les fichiers sources
-add_executable(${PROJECT_NAME}
-
-    tests/main.cpp
-    tests/test_association.cpp
-    tests/cosem_tests_hal.c
+ExternalProject_Add(
+    tests 
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests"
+    PREFIX tests
+    INSTALL_COMMAND ""
 )
 
-enable_testing()
-
-# External libraries
-target_link_libraries(${PROJECT_NAME} PUBLIC cosemlib)
-target_include_directories(${PROJECT_NAME} PUBLIC tests)
+ExternalProject_Add(
+    metersimulator 
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/examples/metersimulator"
+    PREFIX metersimulator
+    INSTALL_COMMAND ""
+)
