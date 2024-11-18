@@ -4,7 +4,7 @@
  * Copyright (c) 2016, Anthony Rabine
  * All rights reserved.
  *
- * This software may be modified and distributed under the terms of the BSD license.
+ * This software may be modified and distributed under the terms of the MIT license.
  * See LICENSE.txt for more details.
  *
  */
@@ -30,7 +30,7 @@ void csm_channel_init(csm_channel *channels, uint8_t chan_size, csm_asso_state *
 void csm_channel_disconnect(uint8_t channel);
 int csm_channel_hls_pass3(csm_array *array, csm_request *request);
 int csm_channel_hls_pass4(csm_array *array, csm_request *request);
-int csm_channel_execute(uint8_t channel, csm_array *packet);
+int csm_channel_execute(csm_db_context_t *ctx, uint8_t channel, csm_array *packet);
 uint8_t csm_channel_new(void);
 
 #endif // CSM_CHANNEL_H

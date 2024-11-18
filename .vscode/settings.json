@@ -1,5 +1,17 @@
 {
     "files.associations": {
-        "select.h": "c"
-    }
+        "select.h": "c",
+        "db_cosem_object_list.h": "c",
+        "app_database.h": "c",
+        "csm_services.h": "c",
+        "array": "c",
+        "db_cosem_clock.h": "c",
+        "stdint.h": "c",
+        "csm_definitions.h": "c",
+        "server_config.h": "c"
+    },
+    "cmake.sourceDirectory": [
+        "${workspaceFolder}/tests",
+        "${workspaceFolder}/examples/metersimulator"
+    ]
 }

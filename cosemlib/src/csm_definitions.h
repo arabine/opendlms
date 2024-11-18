@@ -4,7 +4,7 @@
  * Copyright (c) 2016, Anthony Rabine
  * All rights reserved.
  *
- * This software may be modified and distributed under the terms of the BSD license.
+ * This software may be modified and distributed under the terms of the MIT license.
  * See LICENSE.txt for more details.
  *
  */
@@ -18,6 +18,7 @@ extern "C" {
 
 #include <stdint.h>
 #include "csm_array.h"
+
 
 #define CSM_DEF_LIB_VERSION         "1.0"
 
@@ -201,8 +202,6 @@ typedef struct
     csm_exception exception;
     uint8_t has_data;
 } csm_response;
-
-
 
 // ----------------------------- IMPLEMENTATION SPECIFIC INTERFACE -----------------------------
 

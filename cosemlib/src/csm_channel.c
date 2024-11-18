@@ -4,7 +4,7 @@
  * Copyright (c) 2016, Anthony Rabine
  * All rights reserved.
  *
- * This software may be modified and distributed under the terms of the BSD license.
+ * This software may be modified and distributed under the terms of the MIT license.
  * See LICENSE.txt for more details.
  *
  */
@@ -45,7 +45,7 @@ void csm_channel_init(csm_channel *channels, uint8_t chan_size, csm_asso_state *
     }
 }
 
-int csm_channel_execute(uint8_t channel, csm_array *packet)
+int csm_channel_execute(csm_db_context_t *ctx, uint8_t channel, csm_array *packet)
 {
     int ret = FALSE;
 
@@ -91,12 +91,12 @@ int csm_channel_execute(uint8_t channel, csm_array *packet)
             default:
                 if (asso_list[i].state_cf == CF_ASSOCIATED)
                 {
-                    ret = csm_server_services_execute(&asso_list[i], &channel_list[channel].request, packet);
+                    ret = csm_server_services_execute(ctx, &asso_list[i], &channel_list[channel].request, packet);
                 }
                 else if (asso_list[i].state_cf == CF_ASSOCIATION_PENDING)
                 {
                     // In case of HLS, we have to access to one attribute
-                    ret = csm_services_hls_execute(&asso_list[i], &channel_list[channel].request, packet);
+                    ret = csm_services_hls_execute(ctx, &asso_list[i], &channel_list[channel].request, packet);
                 }
                 else
                 {

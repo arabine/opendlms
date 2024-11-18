@@ -2,7 +2,7 @@
  * Utility functions shared by the application
  * Copyright (c) 2005-2009, Jouni Malinen <j@w1.fi>
  *
- * This software may be distributed under the terms of the BSD license.
+ * This software may be distributed under the terms of the MIT license.
  * See README for more details.
  */
 

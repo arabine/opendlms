@@ -3,13 +3,14 @@
 #include "csm_config.h"
 #include "app_calendar.h"
 #include "app_database.h"
+#include "csm_services.h"
 
-static const db_element **gDatabase = NULL;
+static const struct db_element* gDatabase = NULL;
 static uint32_t gDatabaseSize = 0;
 
 void csm_print_obis(const csm_object_t *data)
 {
-    CSM_TRACE("Class: %d, obis: %d.%d.%d.%d.%d.%d, id: %d\r\n", data->class_id, data->obis.A, data->obis.A, data->obis.A, data->obis.A, data->obis.A, data->obis.A, data->id);
+    CSM_TRACE("Class: %d, obis: %d.%d.%d.%d.%d.%d, id: %d\r\n", data->class_id, data->obis.A, data->obis.B, data->obis.C, data->obis.D, data->obis.E, data->obis.F, data->id);
 }
 
 uint8_t csm_is_obis_equal(const csm_obis_code *first, const csm_obis_code *second)
@@ -26,6 +27,12 @@ uint8_t csm_is_obis_equal(const csm_obis_code *first, const csm_obis_code *secon
     }
 
     return ret;
+}
+
+void csm_db_set_database(const struct db_element *db, uint32_t size)
+{
+    gDatabase = db;
+    gDatabaseSize = size;
 }
 
 static int csm_db_check_attribute(csm_db_request *db_request, const db_object_descr *object)
@@ -79,7 +86,7 @@ static int csm_db_get_object(csm_db_request *db_request, db_obj_handle *handle)
 
     for (uint8_t i = 0U; (i < gDatabaseSize) && (!found); i++)
     {
-        const db_element *obj_list = gDatabase[i];
+        const struct db_element *obj_list = &gDatabase[i];
 
         // Loop on all cosem object in list
         for (uint8_t object_index = 0U; (object_index < obj_list->nb_objects) && (!found); object_index++)
@@ -102,7 +109,7 @@ static int csm_db_get_object(csm_db_request *db_request, db_obj_handle *handle)
 }
 
 
-csm_db_code csm_db_access_func(csm_array *in, csm_array *out, csm_request *request)
+csm_db_code csm_db_access_func(csm_db_context_t *ctx, csm_array *in, csm_array *out, csm_request *request)
 {
     csm_db_code code = CSM_ERR_OBJECT_ERROR;
     // We want to access to an object. First, gets an handle to its parameters
@@ -113,10 +120,10 @@ csm_db_code csm_db_access_func(csm_array *in, csm_array *out, csm_request *reque
     if (csm_db_get_object(&request->db_request, &handle))
     {
         // Ok, call the database main function
-        const db_element *db_element = gDatabase[handle.db_index];
+        const struct db_element *db_element = &gDatabase[handle.db_index];
         if (db_element->handler != NULL)
         {
-            code = db_element->handler(in, out, request);
+            code = db_element->handler(ctx, in, out, request);
         }
         else
         {

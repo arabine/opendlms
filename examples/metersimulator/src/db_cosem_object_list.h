@@ -1,3 +1,5 @@
+#pragma once
+
 #include "app_database.h"
 #include "db_cosem_clock.h"
 #include "db_cosem_associations.h"
@@ -37,12 +39,12 @@ const db_object_descr associations_objects[] = {
     {&current_association_attributes[0], &current_association_methods[0], 15U , { 0U, 0U, 40U, 0U, 0U, 255U } , 0U , 7U, 1U },
 };
 
-const db_element gDataBaseList[] = {
+
+const struct db_element gDataBaseList[] = {
     { &clock_objects[0], db_cosem_clock_func, 1U },
     { &associations_objects[0], db_cosem_associations_func, 1U },
 };
 
 
-#define NUMBER_OF_OBJECTS   2U
-#define NUMBER_OF_DATABASES (sizeof(gDataBaseList)/sizeof(db_element))
+#define COSEM_DATABASE_SIZE (sizeof(gDataBaseList)/sizeof(gDataBaseList[0]))
 

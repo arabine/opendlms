@@ -2,7 +2,7 @@
  * wpa_supplicant/hostapd / Internal implementation of OS specific functions
  * Copyright (c) 2005-2006, Jouni Malinen <j@w1.fi>
  *
- * This software may be distributed under the terms of the BSD license.
+ * This software may be distributed under the terms of the MIT license.
  * See README for more details.
  *
  * This file is an example of operating system specific  wrapper functions.

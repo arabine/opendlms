@@ -26,6 +26,32 @@
                 "trace": false,
                 "traceResponse": false
             }
+        },
+        {
+            "name": "Debug Meter Simulator",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/metersimulator/build/metersimulator", 
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb", 
+            "setupCommands": [
+                {
+                    "description": "Activer le format d'impression des chaînes dans GDB",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build",
+            "logging": {
+                "engineLogging": false,
+                "trace": false,
+                "traceResponse": false
+            }
         }
     ]
 }

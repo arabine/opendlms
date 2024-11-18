@@ -4,7 +4,7 @@
  * Copyright (c) 2016, Anthony Rabine
  * All rights reserved.
  *
- * This software may be modified and distributed under the terms of the BSD license.
+ * This software may be modified and distributed under the terms of the MIT license.
  * See LICENSE.txt for more details.
  *
  */
@@ -120,7 +120,7 @@ int svc_decode_request(csm_request *request, csm_array *array)
     return valid;
 }
 
-static csm_db_code svc_get_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
+static csm_db_code svc_get_request_decoder(csm_db_context_t *ctx, csm_asso_state *state, csm_request *request, csm_array *array)
 {
     csm_db_code code = CSM_ERR_BAD_ENCODING;
     (void) state;
@@ -145,7 +145,7 @@ static csm_db_code svc_get_request_decoder(csm_asso_state *state, csm_request *r
             // Actually append the data
             if (valid)
             {
-                code = database(array, array, request);
+                code = database(ctx, array, array, request);
                 // FIXME: update the code according to the DB result
             }
         }
@@ -175,7 +175,7 @@ static csm_db_code svc_get_request_decoder(csm_asso_state *state, csm_request *r
 
 static const uint32_t gResponseNormalHeaderSize = 6U; // Offset where data can be returned for an Action
 
-static csm_db_code svc_set_or_action_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
+static csm_db_code svc_set_or_action_decoder(csm_db_context_t *ctx, csm_asso_state *state, csm_request *request, csm_array *array)
 {
     csm_db_code code = CSM_ERR_BAD_ENCODING;
     (void) state;
@@ -194,7 +194,7 @@ static csm_db_code svc_set_or_action_decoder(csm_asso_state *state, csm_request 
             output.rd_index = 0U;
             output.wr_index = 0U;
 
-            code = database(array, &output, request);
+            code = database(ctx, array, &output, request);
 
             reply_size = output.wr_index;
 
@@ -262,19 +262,19 @@ static csm_db_code svc_set_or_action_decoder(csm_asso_state *state, csm_request 
     return code;
 }
 
-static csm_db_code svc_set_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
+static csm_db_code svc_set_request_decoder(csm_db_context_t *ctx, csm_asso_state *state, csm_request *request, csm_array *array)
 {
     request->db_request.service = SVC_SET;
     CSM_LOG("[SVC] Decoding SET.request");
-    return svc_set_or_action_decoder(state, request, array);
+    return svc_set_or_action_decoder(ctx, state, request, array);
 }
 
 
-static csm_db_code svc_action_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
+static csm_db_code svc_action_request_decoder(csm_db_context_t *ctx, csm_asso_state *state, csm_request *request, csm_array *array)
 {
     request->db_request.service = SVC_ACTION;
     CSM_LOG("[SVC] Decoding ACTION.request");
-    return svc_set_or_action_decoder(state, request, array);
+    return svc_set_or_action_decoder(ctx, state, request, array);
 }
 
 
@@ -388,7 +388,7 @@ int svc_request_encoder(csm_request *request, csm_array *array)
 }
 
 
-typedef csm_db_code (*svc_func)(csm_asso_state *state, csm_request *request, csm_array *array);
+typedef csm_db_code (*svc_func)(csm_db_context_t *ctx, csm_asso_state *state, csm_request *request, csm_array *array);
 
 
 typedef struct
@@ -412,15 +412,15 @@ void csm_services_init(const csm_db_access_handler db_access)
     database = db_access;
 }
 
-int csm_services_hls_execute(csm_asso_state *state, csm_request *request, csm_array *array)
+int csm_services_hls_execute(csm_db_context_t *ctx, csm_asso_state *state, csm_request *request, csm_array *array)
 {
     // FIXME: restrict only to the current association object and reply_to_hls_authentication method
     CSM_LOG("[SVC] Received HLS Pass 3 -- FIXME accept only current association object");
 
-    return csm_server_services_execute(state, request, array);
+    return csm_server_services_execute(ctx, state, request, array);
 }
 
-int csm_server_services_execute(csm_asso_state *state, csm_request *request, csm_array *array)
+int csm_server_services_execute(csm_db_context_t *ctx, csm_asso_state *state, csm_request *request, csm_array *array)
 {
     int number_of_bytes = 0;
     // FIXME: test the array size: minimum/maximum data size allowed
@@ -435,7 +435,7 @@ int csm_server_services_execute(csm_asso_state *state, csm_request *request, csm
                 if ((srv->tag == tag) && (srv->decoder != NULL))
                 {
                     CSM_LOG("[SVC] Found service");
-                    if (srv->decoder(state, request, array) == CSM_OK)
+                    if (srv->decoder(ctx, state, request, array) == CSM_OK)
                     {
                         number_of_bytes = array->wr_index;
                     }

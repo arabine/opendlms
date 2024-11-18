@@ -17,6 +17,9 @@
 #include "bitfield.h"
 #include "server_config.h"
 
+#include "db_cosem_object_list.h"
+
+static csm_db_context_t gDbContext;
 
 const csm_asso_config assos_config[] =
 {
@@ -100,7 +103,7 @@ int tcp_data_handler(uint8_t channel, memory_t *b, uint32_t payload_size)
             // Then decode the packet, the reply, if any is located in the buffer
             // The reply is valid if the return code is > 0
             csm_array_init(&packet, (uint8_t *)&b->data[0], b->max_size, apdu_size, BUF_APDU_OFFSET);
-            ret = csm_channel_execute(channel, &packet);
+            ret = csm_channel_execute(&gDbContext, channel, &packet);
 
             if (ret > 0)
             {
@@ -177,6 +180,10 @@ void csm_init()
     srand(time(NULL)); // seed init
 
     // DLMS/Cosem stack initialization
+    gDbContext.db = gDataBaseList;
+    gDbContext.size = COSEM_DATABASE_SIZE;
+
+    csm_db_set_database(gDataBaseList, COSEM_DATABASE_SIZE);
     csm_services_init(csm_db_access_func);
     csm_channel_init(&channels[0], NUMBER_OF_CHANNELS, &assos[0], &assos_config[0], NUMBER_OF_ASSOS);
 }
