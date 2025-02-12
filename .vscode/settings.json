@@ -12,6 +12,7 @@
     },
     "cmake.sourceDirectory": [
         "${workspaceFolder}/tests",
-        "${workspaceFolder}/examples/metersimulator"
+        "${workspaceFolder}/examples/metersimulator",
+        "${workspaceFolder}/examples/metersimulator/www"
     ]
 }
