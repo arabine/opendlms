@@ -14,13 +14,13 @@ This Cosem stack has the following goals :
   * Fully unit tested with pre-defined vectors
   * Client/server implementation, LogicalName referencing, LLS, HLS3, 4 and 5, security policy 1
   * Examples using Cosem over TCP/IP
-  * Memory efficient / no dynamic allocation (static, configurable at build-time)
+  * Memory efficient / no dynamic allocation (static, configurable at build-time) / no buffer copy
   * Full traces
-  * Memory protected against buffer overflow using Array utility
+  * Memory protected against buffer overflow using array utility
 
 ## What is working so far
 
-  * Utilities (buffer utilities)
+  
   * BER coder/decoder
   * Association coders and decoders AARQ/AARE/RLRQ/RLRE (LLS)
   * Secure HLS5 GMAC Authentication
@@ -30,23 +30,25 @@ This Cosem stack has the following goals :
   * Exception response in case of problem
   * HDLC framing utility
   * Serial port HAL (Win32/Linux)
-
+  * Utilities
+  * Client reader over HDLC with full logging and XML output
+  * Server example as a meter simulator
+  * Scripting GUI tool prototype
 
 ## Directory organization
-
 
 - `cosemlib`: kernel files of the DLMS/Cosem protocol
 - `client`: specific utilities to write a DLMS/Cosem client
 - `server`: specific utilities to write a DLMS/Cosem server
 - `examples`: Client/server examples
+- `studio`: Graphical utility with Lua scripting (WIP)
 - `tests`: Unit tests for the protocol with raw frames and application objects
-
 
 # How to build
 
 You must have CMake and a C/C++ compiler. Examples generate stand alone executables, other repositories generate static libraries.
 
-The rop level cmake file will build everything.
+The top level cmake file will build everything:
 
 ```
 mkdir build
@@ -55,6 +57,9 @@ cmake ..
 make
 ```
 
+# How to edit & code
+
+The best way is to use VSCode, there are pre-configured settings in the .vscode directory to build & execute demos.
 
 # Manual and integration hints
 

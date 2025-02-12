@@ -3,14 +3,15 @@
 
 #include <string>
 #include <map>
-#include "ApiCosemDefs.h"
+
 
 class ICosem
 {
 public:
+    virtual ~ICosem() {}
 	virtual void Connect(int id) = 0;
 	virtual void Disconnect(int id) = 0;
-	virtual void GetValue(int id, DATAREQID& i_dataReq, COS_DATA*& o_getData, COS_DATA_ACCESS_ERROR& o_dataAccessError) = 0;
+    //virtual void GetValue(int id, DATAREQID& i_dataReq, COS_DATA*& o_getData, COS_DATA_ACCESS_ERROR& o_dataAccessError) = 0;
 };
 
 class Cosem : public ICosem 
@@ -33,23 +34,23 @@ public:
 	// From ICosem
 	virtual void Connect(int id);
 	virtual void Disconnect(int id);
-	virtual void GetValue(int id, DATAREQID& i_dataReq, COS_DATA*& o_getData, COS_DATA_ACCESS_ERROR& o_dataAccessError);
+    // virtual void GetValue(int id, DATAREQID& i_dataReq, COS_DATA*& o_getData, COS_DATA_ACCESS_ERROR& o_dataAccessError);
 
 	void Initialize(int id, const std::string &port, const int baudrate);
 
 private:
-    void ReturnCode(Command cmd, HResult res);
+    // void ReturnCode(Command cmd, HResult res);
 
 	std::string mPort;
 	int mBaudrate;
 	int mId;
 	bool mConnected;
 
-	// Cosem library stuff
-    COSEM_APICONTEXT mContext;
-    PHYSICAL_PARAM mPhyParam;
-    PARAM_COMPORT mComPortParam;
-    COS_CONTEXT mCosemContext;
+    // // Cosem library stuff
+ //    COSEM_APICONTEXT mContext;
+ //    PHYSICAL_PARAM mPhyParam;
+ //    PARAM_COMPORT mComPortParam;
+ //    COS_CONTEXT mCosemContext;
 
     unsigned short mPortId;
     unsigned short mCosemContextId;
@@ -83,13 +84,13 @@ public:
 		}
 	}
 
-	virtual void GetValue(int id, DATAREQID& i_dataReq, COS_DATA*& o_getData, COS_DATA_ACCESS_ERROR& o_dataAccessError)
-	{
-		if (mCosem.find(id) != mCosem.end())
-		{
-			mCosem[id]->GetValue(id, i_dataReq, o_getData, o_dataAccessError);
-		}
-	}
+    // virtual void GetValue(int id, DATAREQID& i_dataReq, COS_DATA*& o_getData, COS_DATA_ACCESS_ERROR& o_dataAccessError)
+    // {
+    // 	if (mCosem.find(id) != mCosem.end())
+    // 	{
+    // 		mCosem[id]->GetValue(id, i_dataReq, o_getData, o_dataAccessError);
+    // 	}
+    // }
 
 	~CosemManager()
 	{

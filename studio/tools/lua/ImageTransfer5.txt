@@ -1,4 +1,0 @@
-//Logical Name =  0 0 44 0 0 255
-//Class_Id =  18
-//Attribut_Id =  5
- element BOOLEAN,	value:1

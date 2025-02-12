@@ -40,9 +40,10 @@ csm_db_code db_cosem_associations_func(csm_db_context_t *ctx, csm_array *in, csm
                     {
                         const db_attr_descr *attr = &obj->attr_list[a];
                         valid = valid && csm_array_write_u8(out, AXDR_TAG_STRUCTURE);
-                        valid = valid && csm_ber_write_len(out, 2);
+                        valid = valid && csm_ber_write_len(out, 3);
                         valid = valid && csm_array_write_u8(out, attr->number);
                         valid = valid && csm_array_write_u8(out, attr->access_rights);
+                        valid = valid && csm_array_write_u8(out, AXDR_TAG_NULL);
                     }
 
                     valid = valid && csm_array_write_u8(out, AXDR_TAG_ARRAY);

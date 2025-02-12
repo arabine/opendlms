@@ -6,8 +6,7 @@
 #include <sstream>
 
 #include "Cosem.h"
-#include <Windows.h>
-#include "ApiCosemServices.h"
+
 
 Cosem::Cosem()
 	: mId(-1)
@@ -28,13 +27,13 @@ void Cosem::Initialize(int id, const std::string &port, const int baudrate)
 	mBaudrate = baudrate;
 
     char version[30];
-	Api_GetCosemVersion(version);
-    std::cout << "Cosem version: " << version << std::endl;
+    // Api_GetCosemVersion(version);
+ //    std::cout << "Cosem version: " << version << std::endl;
 
-	GetInitApiCosem(&mContext);
+    // GetInitApiCosem(&mContext);
 
-    mContext.cosem_init.Control_Param = ADDRESS_32BITS;
-	ReturnCode(OPEN_API_COSEM, OpenApiCosem(&mContext.cosem_init));
+ //    mContext.cosem_init.Control_Param = ADDRESS_32BITS;
+    // ReturnCode(OPEN_API_COSEM, OpenApiCosem(&mContext.cosem_init));
 }
 
 void Cosem::Connect(int id)
@@ -46,7 +45,7 @@ void Cosem::Connect(int id)
 	}
 
 	Disconnect(id);
-
+/*
 	mPhyParam.Baudrate = mBaudrate;
 	std::memset(mPhyParam.com_port, 0, MAX_LEN_STRING);
 //	std::memcpy(mPhyParam.com_port, mPort.c_str(), mPort.size());
@@ -80,8 +79,10 @@ void Cosem::Connect(int id)
 	ReturnCode(CREATE_COSEM_CONTEXT, CreateCosemContext(&mCosemContext, &mCosemContextId));
 
 	ReturnCode(CONNECT_COSEM, ConnectCosem(mCosemContextId, mPortId, &mConnectionId));
-}
 
+*/
+}
+/*
 void Cosem::GetValue(int id, DATAREQID& i_dataReq, COS_DATA*& o_getData, COS_DATA_ACCESS_ERROR& o_dataAccessError)
 {
 	if (id != mId)
@@ -92,6 +93,7 @@ void Cosem::GetValue(int id, DATAREQID& i_dataReq, COS_DATA*& o_getData, COS_DAT
 
 	ReturnCode(GET_COSEM, GetCosem(mCosemContextId, NULL, &i_dataReq, &o_getData, &o_dataAccessError));
 }
+*/
 
 void Cosem::Disconnect(int id)
 {
@@ -103,10 +105,10 @@ void Cosem::Disconnect(int id)
 
 	if (mConnected)
 	{
-		ReturnCode(RELEASE_CONNECT, ReleaseConnect(mCosemContextId));
+        // ReturnCode(RELEASE_CONNECT, ReleaseConnect(mCosemContextId));
 	}
 }
-
+/*
 void Cosem::ReturnCode(Command cmd, HResult res)
 {
 	std::stringstream ss;
@@ -159,5 +161,5 @@ void Cosem::ReturnCode(Command cmd, HResult res)
 
 	std::cout << ss.str() << std::endl;
 }
-
+*/
 

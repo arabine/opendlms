@@ -40,14 +40,13 @@
 
 #include "mainwindow.h"
 //#include "Cosem.h"
-#include "lua_wrapper.h"
-#include "main.h"
+#include "LuaWrapper.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
 #include <iostream>
-#include <thread>
-#include "settings.h"
+
+#include "Settings.h"
 
 
 int main(int argc, char *argv[])
@@ -91,8 +90,8 @@ int main(int argc, char *argv[])
     else
     {
         QCoreApplication app(argc, argv);
-        QCoreApplication::setApplicationName(APP_TITLE);
-        QCoreApplication::setApplicationVersion(SHADDAM_VERSION);
+        QCoreApplication::setApplicationName("Shaddam");
+        QCoreApplication::setApplicationVersion("0.1.0");
 
         QCommandLineParser parser;
         parser.setApplicationDescription("Shaddam, the scriptable Cosem test tool");

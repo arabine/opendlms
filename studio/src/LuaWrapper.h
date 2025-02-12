@@ -1,12 +1,15 @@
 #ifndef LUA_WRAPPER_H
 #define LUA_WRAPPER_H
 
-#include <list>
-#include "Settings.h"
+
 #include "i_script.h"
 #include "ThreadQueue.h"
 #include "Cosem.h"
-#include "lua.hpp"
+extern "C" {
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
 
 class LuaWrapper : public IScript
 {
@@ -23,8 +26,8 @@ public:
     static int Disconnect(lua_State *L);
 	static int ModuleLoader(lua_State *L);
 
-    static int SerializeCosemDataAndResult(lua_State *L, COS_DATA* i_cosemData, COS_DATA_ACCESS_ERROR DataAccessError);
-	static std::string SerializeCosemData(COS_DATA* i_cosemData);
+ //    static int SerializeCosemDataAndResult(lua_State *L, COS_DATA* i_cosemData, COS_DATA_ACCESS_ERROR DataAccessError);
+    // static std::string SerializeCosemData(COS_DATA* i_cosemData);
 
     static int LuaPrint(lua_State *L);
 	static void EntryPoint(LuaWrapper *pthis);

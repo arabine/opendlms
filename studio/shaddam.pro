@@ -28,36 +28,27 @@ win32 {
 
 QMAKE_CXXFLAGS += -std=c++11
 
-VPATH += lib/lua
+VPATH += lua/src
 VPATH += cosem
 
-INCLUDEPATH += lib/lua
+INCLUDEPATH += lua/src
 INCLUDEPATH += cosem
 
 QT += widgets
 
-HEADERS += mainwindow.h \
-        i_script.h \
-        ThreadQueue.h \
-		settings.h \
-        lua_wrapper.h \
-        main.h \
-        settings.h
+HEADERS += src/mainwindow.h \
+        src/i_script.h \
+        src/ThreadQueue.h \
+        src/Settings.h \
+        src/LuaWrapper.h \
+        src/Cosem.h
 
 
-SOURCES += mainwindow.cpp \
-            main.cpp \
-            lua_wrapper.cpp \
-    settings.cpp
-
-# ----------------------
-# DLL COSEM
-# ----------------------
-HEADERS += ApiCosemServices.h \
-            ApiCosemDefs.h \
-            Cosem.h
-
-SOURCES += Cosem.cpp
+SOURCES +=  src/mainwindow.cpp \
+            src/main.cpp \
+            src/LuaWrapper.cpp \
+            src/Settings.cpp \
+            src/Cosem.cpp
 
 # ----------------------
 # LUA
@@ -65,7 +56,6 @@ SOURCES += Cosem.cpp
 SOURCES +=  lapi.c \
             lauxlib.c \
             lbaselib.c \
-            lbitlib.c \
             lcode.c \
             lcorolib.c \
             lctype.c \
@@ -97,13 +87,4 @@ SOURCES +=  lapi.c \
             lzio.c
 
 RESOURCES += shaddam.qrc
-
-win32: LIBS += -L$$PWD/lib/QScintilla_gpl-2.9.2/build/ -lqscintilla2
-
-INCLUDEPATH += $$PWD/lib/QScintilla_gpl-2.9.2/Qt4Qt5
-INCLUDEPATH += $$PWD/lib/QScintilla_gpl-2.9.2/build
-DEPENDPATH += $$PWD/lib/QScintilla_gpl-2.9.2/build
-
-win32:!win32-g++: PRE_TARGETDEPS += $$PWD/lib/QScintilla_gpl-2.9.2/build/qscintilla2.lib
-else:win32-g++: PRE_TARGETDEPS += $$PWD/lib/QScintilla_gpl-2.9.2/build/libqscintilla2.a
 

@@ -46,12 +46,8 @@
 
 #include <QMainWindow>
 #include <QPlainTextEdit>
+#include <QTextEdit>
 
-QT_BEGIN_NAMESPACE
-class QTextEdit;
-class QAction;
-class QMenu;
-QT_END_NAMESPACE
 
 class QsciScintilla;
 
@@ -70,8 +66,8 @@ public:
     MainWindow(IScript &i_script);
 
     // From IScript::IListener
-    virtual void Print(const std::string &message);
-    virtual void Result(int code);
+    virtual void Print(const std::string &message) override;
+    virtual void Result(int code) override;
 
 protected:
     void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
@@ -103,11 +99,11 @@ private:
     void setCurrentFile(const QString &fileName);
     QString strippedName(const QString &fullFileName);
 
-    void customEvent(QEvent *e);
+    void customEvent(QEvent *e) override;
 
     IScript &mScript;
 
-    QsciScintilla *textEdit;
+    QTextEdit *textEdit;
 
     // Console docking widget
     ScriptConsole *scriptConsole;

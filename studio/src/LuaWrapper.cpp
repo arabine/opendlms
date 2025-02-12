@@ -1,15 +1,11 @@
 
 
-#include <windows.h>
 #include <iostream>
-#include <vector>
 #include <thread>
-#include <sstream>
 
-#include "Util.h"
 #include "LuaWrapper.h"
 #include "definitions.h"
-#include "Efs.h"
+
 
 IScript::IListener *LuaWrapper::mListener = NULL;
 
@@ -32,7 +28,7 @@ LuaWrapper::~LuaWrapper()
 int LuaWrapper::DelayMs(lua_State *L)
 {
 	long msecs = static_cast<long>(lua_tointeger(L, -1));
-    Sleep(msecs);
+    std::this_thread::sleep_for(std::chrono::milliseconds(msecs));
     return 0;                  /* No items returned */
 }
 
@@ -68,7 +64,7 @@ int LuaWrapper::Disconnect(lua_State *L)
 int LuaWrapper::GetCosem(lua_State *L)
 {
 	unsigned int id = 0;
-
+/*
     COS_DATA *getData = NULL;
 	COS_DATA_ACCESS_ERROR dataAccessError = COS_OTHER_REASON;
     DATAREQID dataReq;
@@ -106,12 +102,13 @@ int LuaWrapper::GetCosem(lua_State *L)
     gCosem.GetValue(id, dataReq, getData, dataAccessError);
 	
 	return SerializeCosemDataAndResult(L, getData, dataAccessError);
+*/
 }
 
 int LuaWrapper::SetCosem(lua_State *L)
 {
 	unsigned int id = 0;
-
+/*
 	COS_DATA *getData = NULL;
 	COS_DATA_ACCESS_ERROR dataAccessError = COS_OTHER_REASON;
 	DATAREQID dataReq;
@@ -149,8 +146,10 @@ int LuaWrapper::SetCosem(lua_State *L)
 	gCosem.GetValue(id, dataReq, getData, dataAccessError);
 
 	return SerializeCosemDataAndResult(L, getData, dataAccessError);
+*/
+    return 0;
 }
-
+/*
 int LuaWrapper::SerializeCosemDataAndResult(lua_State *L, COS_DATA* cosemData, COS_DATA_ACCESS_ERROR DataAccessError)
 {
     std::string result;
@@ -211,6 +210,7 @@ std::string LuaWrapper::SerializeCosemData(COS_DATA* cosemData)
 
 	return "{ cosem_type=\"" + type.str() + "\", data=" + value.str() + "}";
 }
+*/
 
 int LuaWrapper::LuaPrint(lua_State *L)
 {
@@ -228,7 +228,8 @@ int LuaWrapper::LuaPrint(lua_State *L)
         s = lua_tostring(L, -1);
         if (s == NULL)
         {
-            return luaL_error(L, LUA_QL("tostring") " must return a string to ", LUA_QL("print"));
+            return 1;
+            //return luaL_error(L, LUA_QL("tostring") " must return a string to ", LUA_QL("print"));
         }
 
         ret.append(s);
@@ -269,14 +270,14 @@ void LuaWrapper::EntryPoint(LuaWrapper *pthis)
 int LuaWrapper::ModuleLoader(lua_State *L)
 {
 	const char *name = luaL_checkstring(L, 1);  // Module name
-	Efs file;
-	int ret = 0;
+    // Efs file;
+    int ret = 0;
 
-	if (GetFile(std::string(name) + ".lua", file))
-	{
-		luaL_loadbuffer(L, (const char*)file.ptr, file.size, name);
-		ret = 1;
-	}
+    // if (GetFile(std::string(name) + ".lua", file))
+    // {
+    // 	luaL_loadbuffer(L, (const char*)file.ptr, file.size, name);
+    // 	ret = 1;
+    // }
 
 	return ret;
 }

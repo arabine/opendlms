@@ -88,6 +88,8 @@ int tcp_data_handler(uint8_t channel, memory_t *b, uint32_t payload_size)
     // Length: 2 bytes
     CSM_LOG("[LLC] TCP Packet received");
 
+    print_hex((uint8_t *)buffer, payload_size);
+
     if ((payload_size > COSEM_WRAPPER_SIZE) && (channel < NUMBER_OF_CHANNELS))
     {
         version = GET_BE16(&buffer[0U]);
@@ -107,6 +109,8 @@ int tcp_data_handler(uint8_t channel, memory_t *b, uint32_t payload_size)
 
             if (ret > 0)
             {
+                print_hex((uint8_t *)&b->data[BUF_APDU_OFFSET], ret);
+
                 // Set Version
                 PUT_BE16(&buffer[0], version);
 

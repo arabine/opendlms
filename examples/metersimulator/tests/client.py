@@ -65,8 +65,8 @@ with public_client.session() as client:
 
     response_data = client.get(
         cosem.CosemAttribute(
-            interface=enumerations.CosemInterface.DATA,
-            instance=cosem.Obis(0, 0, 0x2B, 1, 0),
+            interface=enumerations.CosemInterface.CLOCK,
+            instance=cosem.Obis.from_string("0.0.1.0.0.255"),
             attribute=2,
         )
     )
@@ -75,75 +75,4 @@ with public_client.session() as client:
             attributes=[a_xdr.Sequence(attribute_name="data")]
         )
     )
-    invocation_counter = data_decoder.decode(response_data)["data"]
-    print(f"meter_initial_invocation_counter = {invocation_counter}")
 
-# we are not reusing the socket as of now. We just need to give the meter some time to
-# close the connection on its side
-sleep(2)
-
-tcp_io = BlockingTcpIO(host=host, port=port)
-management_tcp_transport = TcpTransport(
-    client_logical_address=1,
-    server_logical_address=1,
-    io=tcp_io,
-)
-
-management_client = DlmsClient(
-    transport=management_tcp_transport,
-    authentication=HighLevelSecurityGmacAuthentication(challenge_length=32),
-    encryption_key=encryption_key,
-    authentication_key=authentication_key,
-    client_initial_invocation_counter=invocation_counter + 1,
-)
-
-
-with management_client.session() as client:
-
-    profile = client.get(
-        cosem.CosemAttribute(
-            interface=enumerations.CosemInterface.PROFILE_GENERIC,
-            instance=cosem.Obis(1, 0, 99, 1, 0),
-            attribute=2,
-        ),
-        access_descriptor=RangeDescriptor(
-            restricting_object=selective_access.CaptureObject(
-                cosem_attribute=cosem.CosemAttribute(
-                    interface=enumerations.CosemInterface.CLOCK,
-                    instance=cosem.Obis.from_string("0.0.1.0.0.255"),
-                    attribute=2,
-                ),
-                data_index=0,
-            ),
-            from_value=dateparser.parse("2022-01-01T00:00:00-02:00"),
-            to_value=dateparser.parse("2022-01-02T00:00:00-01:00"),
-        ),
-    )
-
-    parser = ProfileGenericBufferParser(
-        capture_objects=[
-            cosem.CosemAttribute(
-                interface=enumerations.CosemInterface.CLOCK,
-                instance=cosem.Obis(0, 0, 1, 0, 0, 255),
-                attribute=2,
-            ),
-            cosem.CosemAttribute(
-                interface=enumerations.CosemInterface.DATA,
-                instance=cosem.Obis(0, 0, 96, 10, 1, 255),
-                attribute=2,
-            ),
-            cosem.CosemAttribute(
-                interface=enumerations.CosemInterface.REGISTER,
-                instance=cosem.Obis(1, 0, 1, 8, 0, 255),
-                attribute=2,
-            ),
-            cosem.CosemAttribute(
-                interface=enumerations.CosemInterface.REGISTER,
-                instance=cosem.Obis(1, 0, 2, 8, 0, 255),
-                attribute=2,
-            ),
-        ],
-        capture_period=60,
-    )
-    result = parser.parse_bytes(profile)
-    pprint(result)

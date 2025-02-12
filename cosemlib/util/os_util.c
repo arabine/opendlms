@@ -57,6 +57,7 @@ void print_hex(const char *buf, int size)
         printf("%c", out[1]);
     }
 
+    printf("\n");
     fflush(stdout);
 }
 

@@ -1,12 +1,6 @@
 
-#include <iostream>
-
 #include <QtWidgets>
-#include <Qsci/qsciscintilla.h>
-#include <Qsci/qscilexerlua.h>
 #include "mainwindow.h"
-#include "main.h"
-
 
 ScriptConsole::ScriptConsole(QWidget *parent) :
   QPlainTextEdit(parent)
@@ -51,10 +45,8 @@ MainWindow::MainWindow(IScript &i_script)
 
 void MainWindow::about()
 {
-    QMessageBox::about(this, tr("About " APP_TITLE),
-                tr("<p><b>" APP_TITLE "</b> is the successor of Manitoo, " \
-                   "a scripable automated tool to test DLMS/Cosem meters.</p>"));
-
+    QMessageBox::about(this, tr("About"),
+                tr("<p><b>Shaddam</b> is a scripable automated tool to test DLMS/Cosem meters.</p>"));
 }
 
 
@@ -115,7 +107,7 @@ void MainWindow::open()
 {
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "", "Lua Files (*.lua)");
     if (!fileName.isEmpty()) {
-        if (isUntitled && textEdit->text().isEmpty()
+        if (isUntitled && textEdit->toPlainText().isEmpty()
                 && !isWindowModified()) {
             loadFile(fileName);
         }
@@ -158,7 +150,7 @@ void MainWindow::documentWasModified()
 
 void MainWindow::runScript()
 {
-    mScript.Execute(textEdit->text().toStdString());
+    mScript.Execute(textEdit->toPlainText().toStdString());
 }
 
 void MainWindow::stopScript()
@@ -172,11 +164,11 @@ void MainWindow::init()
 {
     isUntitled = true;
 
-    textEdit = new QsciScintilla;
-    textEdit->setLexer(new QsciLexerLua(textEdit));
+    textEdit = new QTextEdit;
+
     setCentralWidget(textEdit);
 
-    setWindowTitle(tr(APP_TITLE " [*]"));
+    setWindowTitle(tr("Shaddam [*]"));
 
     createActions();
     createMenus();
@@ -342,9 +334,9 @@ void MainWindow::writeSettings()
 
 bool MainWindow::maybeSave()
 {
-    if (textEdit->isModified()) {
+    if (textEdit->isWindowModified()) {
         QMessageBox::StandardButton ret;
-        ret = QMessageBox::warning(this, tr(APP_TITLE),
+        ret = QMessageBox::warning(this, "Shaddam",
                      tr("The document has been modified.\n"
                         "Do you want to save your changes?"),
                      QMessageBox::Save | QMessageBox::Discard
@@ -362,7 +354,7 @@ void MainWindow::loadFile(const QString &fileName)
 
     QFile file(fileName);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr(APP_TITLE),
+        QMessageBox::warning(this, "Shaddam",
                              tr("Cannot read file %1:\n%2.")
                              .arg(fileName)
                              .arg(file.errorString()));
@@ -382,7 +374,7 @@ bool MainWindow::saveFile(const QString &fileName)
 {
     QFile file(fileName);
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
-        QMessageBox::warning(this, tr(APP_TITLE),
+        QMessageBox::warning(this, "Shaddam",
                              tr("Cannot write file %1:\n%2.")
                              .arg(fileName)
                              .arg(file.errorString()));
@@ -391,7 +383,7 @@ bool MainWindow::saveFile(const QString &fileName)
 
     QTextStream out(&file);
     QApplication::setOverrideCursor(Qt::WaitCursor);
-    out << textEdit->text();
+    out << textEdit->toPlainText();
     QApplication::restoreOverrideCursor();
 
     setCurrentFile(fileName);
@@ -410,7 +402,7 @@ void MainWindow::setCurrentFile(const QString &fileName)
         curFile = QFileInfo(fileName).canonicalFilePath();
     }
 
-    textEdit->setModified(false);
+    // textEdit->setModified(false);
     setWindowModified(false);
     setWindowFilePath(curFile);
 }
