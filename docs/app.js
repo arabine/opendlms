@@ -5,6 +5,8 @@ import { html } from 'htm/preact';
 
 // Components
 import MeterDevice  from './MeterDevice.js'
+import TopNavBar  from './components/TopNavBar.js'
+import TutorialPanel from './components/TutorialPanel.js';
 
 export function App() {
 
@@ -20,9 +22,13 @@ export function App() {
     }, []);
 
     return html`
-   
+
+        <${TopNavBar} />
+
+        <div class="flex">
         <${MeterDevice} />
-   
+        <${TutorialPanel} />
+        </div>
     `;
 }
 

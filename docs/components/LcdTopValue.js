@@ -16,9 +16,15 @@ function LcdTopValue({ x = 0, y = 0, w = 30 }) {
 
     // On crée un tableau de 8 éléments pour afficher 8 fois SevenSegment
     return html`
-        <div style="display: flex; justify-content: space-between; gap: 10px;">
+        <div style=${{
+            display: 'flex',
+            'z-index': 1000,
+            position: 'absolute',
+            top: `${y}%`, 
+            left: `${x}%`,
+        }}>
             ${segments.map((item, index) => html`
-                <${SevenSegment} id=${item.id} key=${index} x=${index * (w + 2) + x} y=${y} w=${w}/>
+                <${SevenSegment} id=${item.id} key=${index} w=${w}/>
             `)}
         </div>
     `;

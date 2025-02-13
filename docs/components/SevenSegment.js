@@ -2,7 +2,7 @@ import { html } from 'htm/preact';
 import { useState } from 'preact/hooks';
 
 
-function SevenSegment({ x = 0, y = 0, w = 400 })
+function SevenSegment({ w = 400 })
 {
     const colorLightGreen = '#8baf7c';
 
@@ -42,12 +42,10 @@ function SevenSegment({ x = 0, y = 0, w = 400 })
     };
 
     return html`
-    <svg width="400"  viewBox="0 0 219.41 305.22" xml:space="preserve"
+    <svg  viewBox="0 0 219.41 305.22" xml:space="preserve"
     style=${{ 
-        position: 'absolute', 
-        top: `${y}px`, 
-        left: `${x}px`,
-        width: `${w}px`
+        
+        width: `${w}%`
     }}
     xmlns="http://www.w3.org/2000/svg">
     <g id="layer1" transform="translate(2509.1 508.13)" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">

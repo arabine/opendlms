@@ -9,11 +9,22 @@ function MeterDevice() {
         <style>
 
         </style>
-        <div>
+        <div style="position:relative; width: 400px; height: 600px;">
             
-                <${MeterEnclosure} />
-                <${LcdTopValue} x=${130} y=${100} w=${25}/>
+            <${MeterEnclosure} />
+            <${LcdTopValue} x=${22} y=${9} w=${6} />
+
         </div>
     `;
 }
+
+/*
+
+  
+ 
+*/
+
 export default MeterDevice;
+
+
+
