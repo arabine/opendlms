@@ -381,5 +381,38 @@ TEST_CASE("AARQ-ICube-EZReader", "[AARQ-Decoder]" )
     AARQDecoder(aarq_icube_ezreader, sizeof(aarq_icube_ezreader));
 }
 
+#include "soft_meter.h"
+
+TEST_CASE("ObjectList", "[OBJECT-ASSOCIATION]" )
+{
+    SoftMeter meter; 
+
+    meter.Initialize();
+    meter.AddDefaultAssociations();
+    meter.CosemStackInitialize();   
+    meter.Connect();
+
+    // AARQ (association connection)
+    meter.SendMessage("000100100001001F601DA109060760857405080101BE10040E01000000065F1F040062FEDFFFFF");
+
+    // Object list
+
+// <apdu_xml>
+//     <get-request>
+//     <get-request-normal>
+//         <invoke-id-and-priority val="0xC1" />
+//         <cosem-attribute-descriptor>
+//         <class-id val="0x000F" />
+//         <instance-id val="0x0000280000FF" />
+//         <attribute-id val="0x02" />
+//         </cosem-attribute-descriptor>
+//     </get-request-normal>
+//     </get-request>
+// </apdu_xml>
+    meter.SendMessage("000100100001000DC001C1000F0000280000FF0200");
+
+    meter.Disconnect();
+
+}
 
 

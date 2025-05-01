@@ -6,9 +6,9 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/tests/build/cosemtest", 
-            "args": [],
+            "args": ["ObjectList"],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/tests/build/",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
@@ -20,7 +20,6 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "build",
             "logging": {
                 "engineLogging": false,
                 "trace": false,

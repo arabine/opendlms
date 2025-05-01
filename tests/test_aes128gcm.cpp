@@ -1,7 +1,6 @@
 
 #include "gcm.h"
-#include "unity.h"
-#include "unity_fixture.h"
+#include "catch.hpp"
 #include "string.h"
 
 
@@ -24,19 +23,8 @@ void hexdump(void *ptr, int buflen)
 }
 
 
-TEST_GROUP(Aes128Gcm);
-
-
-TEST_SETUP(Aes128Gcm)
-{
-}
-
-TEST_TEAR_DOWN(Aes128Gcm)
-{
-}
-
 // Simple NIST test vector of the AES128 GCM cyphering
-TEST(Aes128Gcm, NistVector)
+TEST_CASE("NistVector", "[Aes128Gcm]")
 {
     const unsigned char key[16]={0xfe,0xff,0xe9,0x92,0x86,0x65,0x73,0x1c,0x6d,0x6a,0x8f,0x94,0x67,0x30,0x83,0x08};
     const unsigned char IV[12] ={0xca,0xfe,0xba,0xbe,0xfa,0xce,0xdb,0xad,0xde,0xca,0xf8,0x88};
@@ -44,7 +32,7 @@ TEST(Aes128Gcm, NistVector)
 
     unsigned int len_p = sizeof(plaintext);
 
-    unsigned char *ciphertext = malloc(len_p);
+    unsigned char *ciphertext =(unsigned char*) malloc(len_p);
     unsigned char tag[16]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
  //   u8 aes_ctx[AES_PRIV_SIZE];
@@ -57,11 +45,11 @@ TEST(Aes128Gcm, NistVector)
     mbedtls_gcm_init(&ctx);
     mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, key, 128);
 
-    printf("Size of context: %d\r\n", sizeof(ctx));
+    printf("Size of context: %ld\r\n", sizeof(ctx));
 
     int ret = mbedtls_gcm_starts(&ctx, MBEDTLS_GCM_ENCRYPT, IV, 12, NULL, 0);
 
-    TEST_ASSERT_EQUAL(ret, 0);
+    REQUIRE(ret == 0);
 
     uint32_t remaining = len_p;
     const uint32_t BLOCK = 16U;
@@ -87,7 +75,10 @@ TEST(Aes128Gcm, NistVector)
     static const unsigned char expected[] = { 0x4d, 0x5c, 0x2a, 0xf3, 0x27, 0xcd, 0x64, 0xa6, 0x2c, 0xf3, 0x5a, 0xbd, 0x2b, 0xa6, 0xfa, 0xb4 };
     printf("TAG: "); hexdump( tag, 16);
 
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected, tag, 16);
+    for (int i = 0; i < 16; i++)
+    {
+        REQUIRE(expected[i] == tag[i]);
+    }
 
     free(ciphertext);
 }
@@ -118,7 +109,7 @@ T (SC II AK II CtoS)                    FE1466AFB3DBCD4F9389E2B7
 f(CtoS) = SC II IC II T                 1001234567FE1466AFB3DBCD4F9389E2B7
 
  */
-TEST(Aes128Gcm, GreenBookHlsMechanism5Vector)
+TEST_CASE("GreenBookHlsMechanism5Vector" , "[Aes128Gcm]")
 {
     // Mechanism 5 is a tag generation with no plain text; the data to authenticate is
     // appended in the AAD: it contains the challenge, the Authentication Key (AK) and the Security Control Byte (SC)
@@ -134,7 +125,7 @@ TEST(Aes128Gcm, GreenBookHlsMechanism5Vector)
 
     unsigned int len_ad = sizeof(security_byte) + sizeof(AK) + stoc_size;
 
-    unsigned char *aad = malloc(len_ad);
+    unsigned char *aad = (unsigned char *)malloc(len_ad);
 
     // prepare AAD buffer
     aad[0] = security_byte;
@@ -149,7 +140,7 @@ TEST(Aes128Gcm, GreenBookHlsMechanism5Vector)
     mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, key, 128);
 
     int ret = mbedtls_gcm_starts(&ctx, MBEDTLS_GCM_ENCRYPT, IV, 12, aad, len_ad);
-    TEST_ASSERT_EQUAL(ret, 0);
+    REQUIRE(ret == 0);
 
 
     mbedtls_gcm_finish(&ctx, tag, 16);
@@ -157,13 +148,11 @@ TEST(Aes128Gcm, GreenBookHlsMechanism5Vector)
     static const unsigned char expected[] = { 0x1A,0x52,0xFE,0x7D,0xD3,0xE7,0x27,0x48,0x97,0x3C,0x1E,0x28 };
     printf("TAG: "); hexdump( tag, 16);
 
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected, tag, 12); // only the first 12 bytes are used in Cosem
+    for (int i = 0; i < 12; i++)
+    {
+        REQUIRE(expected[i] == tag[i]);
+    }
 
     free(aad);
 }
 
-TEST_GROUP_RUNNER(Aes128Gcm)
-{
-    RUN_TEST_CASE(Aes128Gcm, NistVector);
-    RUN_TEST_CASE(Aes128Gcm, GreenBookHlsMechanism5Vector);
-}

@@ -1,14 +1,19 @@
-#ifndef CSM_DATABASE_H
-#define CSM_DATABASE_H
+#ifndef APP_DATABASE_H
+#define APP_DATABASE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
-#include "csm_services.h"
+#include "csm_server.h"
 
 
 // Database access from Cosem
-csm_db_code csm_db_access_func(csm_db_context_t *ctx, csm_array *in, csm_array *out, csm_request *request);
+csm_db_code csm_db_access_func(csm_server_context_t *ctx, csm_channel *channel, csm_array *in, csm_array *out);
 
-// Initialize Cosem database (objects list)
-void csm_db_set_database(const struct db_element *db, uint32_t size);
+#ifdef __cplusplus
+}
+#endif
 
-#endif // CSM_DATABASE_H
+#endif // APP_DATABASE_H

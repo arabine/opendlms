@@ -19,7 +19,8 @@ PRIVATE
     src/csm_ber.c
     src/csm_channel.c
     src/csm_security.c
-    src/csm_services.c
+    src/csm_server.c
+    src/csm_client.c
 
     # HDLC
     hdlc/hdlc.c

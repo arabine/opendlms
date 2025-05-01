@@ -26,7 +26,7 @@ const csm_asso_config assos_config[] =
 {
     // Client public association
     { {16U, 1U},
-      CSM_CBLOCK_GET | CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ,
+      CSM_CBLOCK_GET | CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ | CSM_CBLOCK_SELECTIVE_ACCESS,
       0U, // No auto-connected
     },
 

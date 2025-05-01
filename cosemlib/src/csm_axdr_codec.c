@@ -194,6 +194,21 @@ int csm_axdr_wr_i8(csm_array *array, int8_t value)
     return valid;
 }
 
+int csm_axdr_wr_u8(csm_array *array, uint8_t value)
+{
+    int valid = csm_array_write_u8(array, AXDR_TAG_UNSIGNED8);
+    valid = valid && csm_array_write_u8(array, value);
+    return valid;
+}
+
+int csm_axdr_wr_enum(csm_array *array, uint8_t value)
+{
+    int valid = csm_array_write_u8(array, AXDR_TAG_ENUM);
+    valid = valid && csm_array_write_u8(array, value);
+    return valid;
+}
+
+
 int csm_axdr_wr_u16(csm_array *array, uint16_t value)
 {
     int valid = csm_array_write_u8(array, AXDR_TAG_UNSIGNED16);

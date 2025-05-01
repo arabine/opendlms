@@ -3,10 +3,7 @@
 #include "csm_config.h"
 #include "app_calendar.h"
 #include "app_database.h"
-#include "csm_services.h"
-
-static const struct db_element* gDatabase = NULL;
-static uint32_t gDatabaseSize = 0;
+#include "csm_server.h"
 
 void csm_print_obis(const csm_object_t *data)
 {
@@ -29,11 +26,6 @@ uint8_t csm_is_obis_equal(const csm_obis_code *first, const csm_obis_code *secon
     return ret;
 }
 
-void csm_db_set_database(const struct db_element *db, uint32_t size)
-{
-    gDatabase = db;
-    gDatabaseSize = size;
-}
 
 static int csm_db_check_attribute(csm_db_request *db_request, const db_object_descr *object)
 {
@@ -80,27 +72,28 @@ static int csm_db_check_attribute(csm_db_request *db_request, const db_object_de
 }
 
 
-static int csm_db_get_object(csm_db_request *db_request, db_obj_handle *handle)
+static int csm_db_get_object(csm_server_context_t *ctx, csm_channel *channel, db_obj_handle *handle)
 {
     uint8_t found = FALSE;
 
-    for (uint8_t i = 0U; (i < gDatabaseSize) && (!found); i++)
+    for (uint8_t i = 0U; (i < ctx->db->size) && (!found); i++)
     {
-        const struct db_element *obj_list = &gDatabase[i];
+        const struct db_element *obj_list = &ctx->db->el[i];
 
         // Loop on all cosem object in list
-        for (uint8_t object_index = 0U; (object_index < obj_list->nb_objects) && (!found); object_index++)
+        for (uint32_t object_index = 0U; (object_index < obj_list->nb_objects) && (!found); object_index++)
         {
             const db_object_descr *curr_obj = &obj_list->objects[object_index];
             // Check the obis code
-            if ((curr_obj->class_id == db_request->logical_name.class_id) && csm_is_obis_equal(&curr_obj->obis_code, &db_request->logical_name.obis))
+            if ((curr_obj->class_id == channel->request.db_request.logical_name.class_id) &&
+                     csm_is_obis_equal(&curr_obj->obis_code, &(channel->request.db_request.logical_name.obis)))
             {
                 handle->object       = curr_obj;
                 handle->db_index     = i;
                 handle->obj_index    = object_index;
 
                 // Verify that this object contains the suitable method/attribute and if we can access to it
-                found = csm_db_check_attribute(db_request, curr_obj);
+                found = csm_db_check_attribute(&channel->request.db_request, curr_obj);
             }
         }
     }
@@ -109,7 +102,7 @@ static int csm_db_get_object(csm_db_request *db_request, db_obj_handle *handle)
 }
 
 
-csm_db_code csm_db_access_func(csm_db_context_t *ctx, csm_array *in, csm_array *out, csm_request *request)
+csm_db_code csm_db_access_func(csm_server_context_t *ctx, csm_channel *channel, csm_array *in, csm_array *out)
 {
     csm_db_code code = CSM_ERR_OBJECT_ERROR;
     // We want to access to an object. First, gets an handle to its parameters
@@ -117,13 +110,13 @@ csm_db_code csm_db_access_func(csm_db_context_t *ctx, csm_array *in, csm_array *
 
     db_obj_handle handle;
 
-    if (csm_db_get_object(&request->db_request, &handle))
+    if (csm_db_get_object(ctx, channel, &handle))
     {
         // Ok, call the database main function
-        const struct db_element *db_element = &gDatabase[handle.db_index];
+        const struct db_element *db_element = &ctx->db->el[handle.db_index];
         if (db_element->handler != NULL)
         {
-            code = db_element->handler(ctx, in, out, request);
+            code = db_element->handler(ctx, channel, in, out);
         }
         else
         {
@@ -133,7 +126,7 @@ csm_db_code csm_db_access_func(csm_db_context_t *ctx, csm_array *in, csm_array *
     else
     {
         CSM_ERR("[DB] Cosem object not found: ");
-        csm_print_obis(&request->db_request.logical_name);
+        csm_print_obis(&channel->request.db_request.logical_name);
         code = CSM_ERR_OBJECT_NOT_FOUND;
     }
 

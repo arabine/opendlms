@@ -12,6 +12,10 @@
 #ifndef CSM_SECURITY_H
 #define CSM_SECURITY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "csm_array.h"
 #include "csm_definitions.h"
 
@@ -67,5 +71,9 @@ typedef enum
 csm_sec_result csm_sec_auth_decrypt(csm_array *array, csm_request *request, const uint8_t *system_title);
 csm_sec_result csm_sec_auth_encrypt(csm_array *array, csm_request *request, const uint8_t *system_title, csm_sec_control_byte sc, uint32_t ic);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CSM_SECURITY_H

@@ -12,6 +12,10 @@
 #ifndef CSM_BER_H
 #define CSM_BER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include "csm_array.h"
 
@@ -132,5 +136,10 @@ int csm_ber_write_len(csm_array *array, uint16_t len);
 
 int csm_ber_write_u8(csm_array *array, uint8_t value);
 int csm_ber_read_u8(csm_array *array, uint8_t *value);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CSM_BER_H

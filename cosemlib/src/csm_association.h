@@ -66,7 +66,10 @@ enum csm_auth_level
     CSM_AUTH_HIGH_LEVEL_GMAC    = 5U,
     CSM_AUTH_HIGH_LEVEL_SHA256  = 6U
 };
-
+#ifdef __cplusplus
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
+#endif
 typedef enum
 {
     CSM_ASSO_AARQ                   = TAG_APPLICATION + TAG_CONSTRUCTED + 0U,   ///< Application number 0
@@ -101,6 +104,9 @@ typedef enum
     CSM_ASSO_RESULT_SERVICE_USER    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  1U,
 } csm_asso_tag;
 
+#ifdef __cplusplus
+#pragma GCC diagnostic pop
+#endif
 
 /*
 

@@ -12,8 +12,12 @@
 #ifndef CSM_CHANNEL_H
 #define CSM_CHANNEL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "csm_association.h"
-#include "csm_services.h"
+#include "csm_database.h"
 
 #define INVALID_CHANNEL_ID 0U
 
@@ -23,14 +27,17 @@ typedef struct
     csm_request request;
     csm_asso_state *asso;   //!< Association used for that channel
 
+    uint32_t current_block;
 } csm_channel;
 
 
-void csm_channel_init(csm_channel *channels, uint8_t chan_size, csm_asso_state *assos, const csm_asso_config *assos_config, uint8_t asso_size);
-void csm_channel_disconnect(uint8_t channel);
-int csm_channel_hls_pass3(csm_array *array, csm_request *request);
-int csm_channel_hls_pass4(csm_array *array, csm_request *request);
-int csm_channel_execute(csm_db_context_t *ctx, uint8_t channel, csm_array *packet);
-uint8_t csm_channel_new(void);
+
+int csm_channel_hls_pass3(csm_array *array, csm_channel *channel);
+int csm_channel_hls_pass4(csm_array *array, csm_channel *channel);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CSM_CHANNEL_H

@@ -189,6 +189,24 @@ typedef struct
 
 enum svc_response   { SVC_RESPONSE_NORMAL, SVC_RESPONSE_WITH_DATABLOCK };
 
+
+/*
+Get-Response ::= CHOICE
+{
+get-response-normal             [1] IMPLICIT Get-Response-Normal,
+get-response-with-datablock     [2] IMPLICIT Get-Response-With-Datablock,
+get-response-with-list          [3] IMPLICIT Get-Response-With-List
+}
+*/
+
+typedef enum 
+{
+    SVC_GET_RESPONSE_NORMAL = 0,
+    SVC_GET_RESPONSE_WITH_DATABLOCK = 1,
+    SVC_GET_RESPONSE_WITH_LIST = 2
+} svc_response_type;
+
+
 typedef struct
 {
     enum csm_service service;

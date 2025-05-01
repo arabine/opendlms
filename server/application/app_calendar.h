@@ -1,6 +1,10 @@
 #ifndef APP_CALENDAR_H
 #define APP_CALENDAR_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 #include "app_definitions.h"
@@ -79,5 +83,9 @@ int cal_get_day_profile_by_id(const cal_scheduler_t *sched, uint8_t id, cal_day_
 int cal_get_day_profile_by_index(const cal_scheduler_t *sched, const uint8_t index, cal_day_profile_t *dp);
 int cal_is_day_profile_exists(const cal_scheduler_t *sched, uint8_t id, uint8_t *index);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // APP_CALENDAR_H
