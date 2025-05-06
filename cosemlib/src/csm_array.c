@@ -11,6 +11,7 @@
 
 #include "csm_array.h"
 #include "os_util.h"
+#include "csm_definitions.h"
 #include <string.h>
 
 #define INDEX(array, i)         (i+array->offset)
@@ -28,6 +29,12 @@ void csm_array_init(csm_array *array, uint8_t *buffer, uint32_t max_size, uint32
     array->offset = offset;
     array->size = max_size;
     array->wr_index = (used_size+offset) >= max_size ? (max_size-offset) : used_size;
+}
+
+void csm_array_reset(csm_array *array)
+{
+    array->rd_index = 0U;
+    array->wr_index = array->size - array->offset;
 }
 
 int csm_array_get(const csm_array *array, uint32_t index, uint8_t *byte)
@@ -109,12 +116,9 @@ int csm_array_write_u32(csm_array *array, uint32_t value)
 
 void csm_array_dump(csm_array *array)
 {
-    for (uint32_t i = 0U; i < array->size; i++)
+    for (uint32_t i = array->offset; i < WR_INDEX(array); i++)
     {
-        if (i > 0U)
-        {
-            CSM_TRACE(":");
-        }
+        CSM_TRACE(":");
         CSM_TRACE("%02X", array->buff[i]);
     }
     CSM_TRACE("\r\n");
@@ -132,6 +136,24 @@ int csm_array_writer_jump(csm_array *array, uint32_t nb_bytes)
         ret = FALSE;
     }
 
+    return ret;
+}
+
+int csm_array_write_array(csm_array *array, const csm_array *src_array)
+{
+    int ret = FALSE;
+    uint32_t size = csm_array_written(src_array);
+
+    if (csm_array_free_size(array) >= size)
+    {
+        (void) memcpy(csm_array_wr_data(array), csm_array_rd_data(src_array), size);
+        array->wr_index += size;
+        ret = TRUE;
+    }
+    else
+    {
+        CSM_ERR("[ARRAY] Full");
+    }
     return ret;
 }
 
@@ -193,12 +215,17 @@ uint32_t csm_array_free_size(csm_array *array)
     return (array->size - WR_INDEX(array));
 }
 
-uint32_t csm_array_written(csm_array *array)
+uint32_t csm_array_data_size(const csm_array *array)
+{
+    return (array->size - array->offset);
+}
+
+uint32_t csm_array_written(const csm_array *array)
 {
     return (WR_INDEX(array));
 }
 
-uint8_t *csm_array_rd_data(csm_array *array)
+uint8_t *csm_array_rd_data(const csm_array *array)
 {
     return (array->buff + RD_INDEX(array));
 }

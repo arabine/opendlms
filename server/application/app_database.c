@@ -1,6 +1,5 @@
 
 
-#include "csm_config.h"
 #include "app_calendar.h"
 #include "app_database.h"
 #include "csm_server.h"
@@ -72,7 +71,7 @@ static int csm_db_check_attribute(csm_db_request *db_request, const db_object_de
 }
 
 
-static int csm_db_get_object(csm_server_context_t *ctx, csm_channel *channel, db_obj_handle *handle)
+static int csm_db_get_object(csm_server_context_t *ctx, db_obj_handle *handle)
 {
     uint8_t found = FALSE;
 
@@ -85,15 +84,15 @@ static int csm_db_get_object(csm_server_context_t *ctx, csm_channel *channel, db
         {
             const db_object_descr *curr_obj = &obj_list->objects[object_index];
             // Check the obis code
-            if ((curr_obj->class_id == channel->request.db_request.logical_name.class_id) &&
-                     csm_is_obis_equal(&curr_obj->obis_code, &(channel->request.db_request.logical_name.obis)))
+            if ((curr_obj->class_id == ctx->asso->request.db_request.logical_name.class_id) &&
+                     csm_is_obis_equal(&curr_obj->obis_code, &(ctx->asso->request.db_request.logical_name.obis)))
             {
                 handle->object       = curr_obj;
                 handle->db_index     = i;
                 handle->obj_index    = object_index;
 
                 // Verify that this object contains the suitable method/attribute and if we can access to it
-                found = csm_db_check_attribute(&channel->request.db_request, curr_obj);
+                found = csm_db_check_attribute(&ctx->asso->request.db_request, curr_obj);
             }
         }
     }
@@ -102,7 +101,7 @@ static int csm_db_get_object(csm_server_context_t *ctx, csm_channel *channel, db
 }
 
 
-csm_db_code csm_db_access_func(csm_server_context_t *ctx, csm_channel *channel, csm_array *in, csm_array *out)
+csm_db_code csm_db_access_func(csm_server_context_t *ctx, csm_array *in, csm_array *out)
 {
     csm_db_code code = CSM_ERR_OBJECT_ERROR;
     // We want to access to an object. First, gets an handle to its parameters
@@ -110,13 +109,13 @@ csm_db_code csm_db_access_func(csm_server_context_t *ctx, csm_channel *channel, 
 
     db_obj_handle handle;
 
-    if (csm_db_get_object(ctx, channel, &handle))
+    if (csm_db_get_object(ctx, &handle))
     {
         // Ok, call the database main function
         const struct db_element *db_element = &ctx->db->el[handle.db_index];
         if (db_element->handler != NULL)
         {
-            code = db_element->handler(ctx, channel, in, out);
+            code = db_element->handler(ctx, in, out);
         }
         else
         {
@@ -126,7 +125,7 @@ csm_db_code csm_db_access_func(csm_server_context_t *ctx, csm_channel *channel, 
     else
     {
         CSM_ERR("[DB] Cosem object not found: ");
-        csm_print_obis(&channel->request.db_request.logical_name);
+        csm_print_obis(&ctx->asso->request.db_request.logical_name);
         code = CSM_ERR_OBJECT_NOT_FOUND;
     }
 

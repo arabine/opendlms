@@ -45,7 +45,6 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "build",
             "logging": {
                 "engineLogging": false,
                 "trace": false,

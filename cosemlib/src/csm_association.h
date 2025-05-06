@@ -19,7 +19,6 @@ extern "C" {
 
 
 #include <stdint.h>
-#include "csm_config.h"
 #include "csm_ber.h"
 #include "csm_definitions.h"
 
@@ -140,6 +139,15 @@ enum csm_asso_result
     CSM_ASSO_AUTH_REQUIRED                      = 14U,
 };
 
+typedef enum 
+{
+    CSM_RESPONSE_STATE_START,
+    CSM_RESPONSE_STATE_SENDING,
+    CSM_RESPONSE_STATE_NEXT_LOOP,
+    CSM_RESPONSE_STATE_END,
+
+} csm_response_state;
+
 /**
  * @brief Configuration structure of one association, should be fixed in ROM at compile time
  */
@@ -175,6 +183,7 @@ typedef struct
  * @brief State and information of the current association
  *
  * This state structure contains valid data for the life of one association
+ * An association taht is opened 
  *
  */
 typedef struct
@@ -191,12 +200,43 @@ typedef struct
 
     // Pointer to the configuration structure in ROM
     const csm_asso_config *config;
+
+    int8_t channel_id;   //!< Channel ID used buy this association
+
+    // Block transfer states are in the channel, not in association state
+    // In that case, we allow simultaneous read by block on multiple channels (ie: TCP/IP + optical head HDLC)
+    uint32_t current_block;
+    csm_response_state state;
+
+    // Blocks can be much smaller than an entry. Therefore, we define a logical loop.
+    // One loop is one entry of teh attribute Array.
+    // Examples:
+    // - 1 loop = 1 billing entry
+    // - 1 loop = 1 object for object list
+    // The entry is then splitted into multiple blocks
+    uint32_t current_loop;
+    uint32_t nb_loops;
+
+  
+    csm_array rx;
+    csm_array tx;
+
+    // Scratch buffer for the channel. In real life, must be big enough to store the biggest attibute.
+    // For example: a billing entry with full capture object configured
+    // Thus, it is filled in each loop call.
+    csm_array scratch;
+
+
 } csm_asso_state;
 
 void csm_asso_init(csm_asso_state *state);
 int csm_asso_server_execute(csm_asso_state *state, csm_array *packet);
 int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag);
 int csm_asso_decoder(csm_asso_state *state, csm_array *array, uint8_t tag);
+
+int csm_asso_hls_pass3(csm_asso_state *state, csm_array *array);
+int csm_asso_hls_pass4(csm_asso_state *state, csm_array *array);
+
 
 #ifdef __cplusplus
 }

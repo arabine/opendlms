@@ -11,6 +11,7 @@
 
 #include <string.h>
 #include "csm_ber.h"
+#include "csm_definitions.h"
 
 // We only manage one-byte identifier
 // We only manage two-bytes length

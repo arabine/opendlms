@@ -1,0 +1,29 @@
+#pragma once
+
+
+#ifndef METER_PDU_SIZE
+#define METER_PDU_SIZE    1024U
+#endif
+
+
+#ifndef METER_TX_PDU_SIZE
+#define METER_TX_PDU_SIZE        1024
+#endif
+
+#ifndef METER_RX_PDU_SIZE
+#define METER_RX_PDU_SIZE        1024
+#endif
+
+#ifndef METER_SCRATCH_BUF_SIZE
+#define METER_SCRATCH_BUF_SIZE    1024U
+#endif
+
+#ifndef METER_NUMBER_OF_ASSOCIATIONS
+#define METER_NUMBER_OF_ASSOCIATIONS    2U
+#endif
+
+
+#define BUF_WRAPPER_OFFSET  (CSM_DEF_MAX_HLS_SIZE)
+#define BUF_APDU_OFFSET     (COSEM_WRAPPER_SIZE + CSM_DEF_MAX_HLS_SIZE)
+
+

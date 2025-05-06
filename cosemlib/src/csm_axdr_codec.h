@@ -96,6 +96,7 @@ int csm_axdr_wr_i8(csm_array *array, int8_t value);
 int csm_axdr_wr_u8(csm_array *array, uint8_t value);
 int csm_axdr_wr_enum(csm_array *array, uint8_t value);
 int csm_axdr_wr_u16(csm_array *array, uint16_t value);
+int csm_axdr_wr_u32(csm_array *array, uint32_t value);
 int csm_axdr_wr_boolean(csm_array *array, uint8_t value);
 int csm_axdr_wr_capture_object(csm_array *array, csm_object_t *data);
 

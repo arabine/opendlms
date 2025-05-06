@@ -17,7 +17,6 @@ PRIVATE
     src/csm_association.c
     src/csm_axdr_codec.c
     src/csm_ber.c
-    src/csm_channel.c
     src/csm_security.c
     src/csm_server.c
     src/csm_client.c

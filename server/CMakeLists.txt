@@ -1,9 +1,9 @@
 # Version minimale de CMake
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 # Nom du projet
 project(cosemserver LANGUAGES C CXX)
-
+set(CMAKE_CXX_STANDARD 20)
 add_subdirectory(../cosemlib csm)
 
 # Ajouter les fichiers sources
@@ -18,12 +18,15 @@ add_library(${PROJECT_NAME}
     database/db_cosem_clock.c
     database/db_cosem_image_transfer.c
 
+    src/meter.c
+
 )
 
 # Inclure des répertoires d'en-têtes si nécessaire
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/application
     ${CMAKE_CURRENT_LIST_DIR}/database
+    ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 # External libraries

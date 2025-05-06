@@ -81,7 +81,12 @@
         "csm_array.h": "c",
         "csm_database.h": "c",
         "csm_channel.h": "c",
-        "csm_server.h": "c"
+        "csm_server.h": "c",
+        "regex": "c",
+        "csm_config.h": "c",
+        "transports.h": "c",
+        "meter_definitions.h": "c",
+        "stdlib.h": "c"
     },
     "cmake.sourceDirectory": [
         "${workspaceFolder}/tests",

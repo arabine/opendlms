@@ -6,8 +6,6 @@
 // Cosem stack
 #include "csm_array.h"
 #include "csm_ber.h"
-#include "csm_channel.h"
-#include "csm_config.h"
 
 // Meter environment
 //#include "unity_fixture.h"
@@ -73,7 +71,7 @@ static const uint16_t COSEM_WRAPPER_VERSION = 0x0001U;
  * @param size
  * @return > 0 the number of bytes to reply back to the sender
  */
-int tcp_data_handler(uint8_t channel, memory_t *b, uint32_t payload_size)
+int tcp_data_handler(int8_t channel_id, memory_t *b, uint32_t payload_size)
 {
     int ret = -1;
     uint16_t version;
@@ -139,14 +137,14 @@ int tcp_data_handler(uint8_t channel, memory_t *b, uint32_t payload_size)
     return ret;
 }
 
-uint8_t tcp_conn_handler(uint8_t channel, enum conn_event event)
+uint8_t tcp_conn_handler(int8_t channel_id, enum conn_event event)
 {
     uint8_t ret = FALSE;
     switch(event)
     {
     case CONN_DISCONNECTED:
     {
-        if (channel > INVALID_CHANNEL_ID)
+        if (channel > CSM_CHANNEL_INVALID_ID)
         {
             channel--; // transform id into index
             csm_channel_disconnect(channel);

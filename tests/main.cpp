@@ -6,8 +6,6 @@
 // Cosem stack
 #include "csm_array.h"
 #include "csm_ber.h"
-#include "csm_channel.h"
-#include "csm_config.h"
 
 // Meter environment
 #include "os_util.h"

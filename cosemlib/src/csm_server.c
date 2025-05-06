@@ -1,6 +1,10 @@
 #include "csm_server.h"
 #include "csm_axdr_codec.h"
 
+static const uint32_t gResponseNormalHeaderSize = 6U; // Offset where data can be returned for an Action
+static const uint32_t gResponseWithDataBlockHeaderSize = 8U;
+
+
 // FIXME: add parameters to specialize the exception response
 int svc_exception_response_encoder(csm_array *array)
 {
@@ -8,6 +12,17 @@ int svc_exception_response_encoder(csm_array *array)
     valid = valid && csm_array_write_u8(array, 1U);
     valid = valid && csm_array_write_u8(array, 1U);
     return valid;
+}
+
+
+void csm_server_init(csm_server_context_t *cosem_ctx)
+{
+    for (uint32_t i = 0U; i < cosem_ctx->nb_assos; i++)
+    {
+        csm_asso_init(&cosem_ctx->asso_list[i]);
+    }
+
+    cosem_ctx->asso = NULL;
 }
 
 
@@ -107,15 +122,15 @@ int svc_decode_request(csm_request *request, csm_array *array)
     return valid;
 }
 
-static csm_db_code svc_get_request_decoder(csm_server_context_t *ctx, csm_channel *channel, csm_array *array)
+static csm_db_code svc_get_request_decoder(csm_server_context_t *ctx, csm_array *array)
 {
     csm_db_code code = CSM_ERR_BAD_ENCODING;
 
     CSM_LOG("[SVC] Decoding GET.request");
 
-    channel->request.db_request.service = SVC_GET;
+    ctx->asso->request.db_request.service = SVC_GET;
 
-    if (svc_decode_request(&channel->request, array))
+    if (svc_decode_request(&ctx->asso->request, array))
     {
         if (ctx->db != NULL)
         {
@@ -123,21 +138,71 @@ static csm_db_code svc_get_request_decoder(csm_server_context_t *ctx, csm_channe
             array->wr_index = 0U;
             CSM_LOG("[SVC] Encoding GET.response");
 
-            int valid = csm_array_write_u8(array, AXDR_GET_RESPONSE);
-            valid = valid && csm_array_write_u8(array, SVC_GET_RESPONSE_NORMAL); // default, can be changed by the application
-            valid = valid && csm_array_write_u8(array, channel->request.sender_invoke_id);
-            valid = valid && csm_array_write_u8(array, 0U); // data result
+            csm_array_reset(&ctx->asso->scratch);
 
-            // Actually append the data
-            if (valid)
+            code = ctx->db_access_func(ctx, array, &ctx->asso->scratch);
+
+            if (code == CSM_OK)
             {
-                code = ctx->db_access_func(ctx, channel, array, array);
-
-                if (code == CSM_OK_BLOCK)
+                int valid = csm_array_write_u8(array, AXDR_GET_RESPONSE);
+                valid = valid && csm_array_write_u8(array, SVC_GET_RESPONSE_NORMAL); // default, can be changed by the application
+                valid = valid && csm_array_write_u8(array, ctx->asso->request.sender_invoke_id);
+                valid = valid && csm_array_write_u8(array, 0U); // data result
+                valid = valid && csm_array_write_array(array, &ctx->asso->scratch); // append the data
+            }
+            else if (code == CSM_OK_BLOCK)
+            {
+                // First loop
+                if (ctx->asso->state == CSM_RESPONSE_STATE_START)
                 {
-                    csm_array_set(array, 1U, SVC_GET_RESPONSE_WITH_DATABLOCK);
+                    ctx->asso->current_block = 1U;
+                    ctx->asso->state == CSM_RESPONSE_STATE_SENDING;
                 }
-                // FIXME: update the code according to the DB result
+
+                // Compute transmit buffer capacity
+
+
+
+                // Detect last block:
+                //  - when all loops are done
+                //  - When there is no more data to read
+                uint8_t last_block = FALSE;
+                // Compute the maximum size to send to the client
+                uint16_t client_max_pdu_size = csm_array_data_size(array);
+                if (client_max_pdu_size > ctx->asso->handshake.client_max_receive_pdu_size)
+                {
+                    client_max_pdu_size = ctx->asso->handshake.client_max_receive_pdu_size;
+                }
+                client_max_pdu_size -= gResponseWithDataBlockHeaderSize; // remove the header size
+
+                if (ctx->asso->current_loop == ctx->asso->nb_loops)
+                {
+                    // How many bytes to read?
+                    uint32_t bytes_left = csm_array_unread(&ctx->asso->scratch);
+                    if (bytes_left <= client_max_pdu_size)
+                    {
+                        last_block = TRUE;
+                        ctx->asso->state == CSM_RESPONSE_STATE_START;
+                    }
+                }
+
+                // Header
+                int valid = csm_array_write_u8(array, AXDR_GET_RESPONSE);
+                valid = valid && csm_array_write_u8(array, SVC_GET_RESPONSE_WITH_DATABLOCK);
+                valid = valid && csm_array_write_u8(array, ctx->asso->request.sender_invoke_id);
+                valid = valid && csm_axdr_wr_boolean(array, last_block);
+                valid = valid && csm_axdr_wr_u32(array, ctx->asso->current_block);
+
+                const uint8_t *data = csm_array_rd_data(&ctx->asso->scratch); 
+                valid = valid && csm_axdr_wr_octetstring(array, data, ctx->asso->scratch.wr_index);   
+                
+                if (last_block)
+                {
+                    // auto reset
+                    ctx->asso->current_block = 0;
+                }
+
+                
             }
         }
         else
@@ -147,7 +212,7 @@ static csm_db_code svc_get_request_decoder(csm_server_context_t *ctx, csm_channe
         }
     }
 
-    if (code != CSM_OK)
+    if (code > CSM_OK_BLOCK)
     {
         array->wr_index = 0U;
         if (svc_exception_response_encoder(array))
@@ -164,13 +229,11 @@ static csm_db_code svc_get_request_decoder(csm_server_context_t *ctx, csm_channe
 }
 
 
-static const uint32_t gResponseNormalHeaderSize = 6U; // Offset where data can be returned for an Action
-
-static csm_db_code svc_set_or_action_decoder(csm_server_context_t *ctx, csm_channel *channel, csm_array *array)
+static csm_db_code svc_set_or_action_decoder(csm_server_context_t *ctx, csm_array *array)
 {
     csm_db_code code = CSM_ERR_BAD_ENCODING;
 
-    if (svc_decode_request(&channel->request, array))
+    if (svc_decode_request(&ctx->asso->request, array))
     {
         if (ctx->db_access_func != NULL)
         {
@@ -184,7 +247,7 @@ static csm_db_code svc_set_or_action_decoder(csm_server_context_t *ctx, csm_chan
             output.rd_index = 0U;
             output.wr_index = 0U;
 
-            code = ctx->db_access_func(ctx, channel, array, &output);
+            code = ctx->db_access_func(ctx, array, &output);
 
             reply_size = output.wr_index;
 
@@ -192,13 +255,13 @@ static csm_db_code svc_set_or_action_decoder(csm_server_context_t *ctx, csm_chan
             output.offset -= gResponseNormalHeaderSize;
             output.wr_index = 0U;
 
-            uint8_t service_resp = (channel->request.db_request.service == SVC_SET) ? AXDR_SET_RESPONSE : AXDR_ACTION_RESPONSE;
+            uint8_t service_resp = (ctx->asso->request.db_request.service == SVC_SET) ? AXDR_SET_RESPONSE : AXDR_ACTION_RESPONSE;
             int valid = csm_array_write_u8(&output, service_resp);
             valid = valid && csm_array_write_u8(&output, 1U); // FIXME: use proper service tag according to service type
-            valid = valid && csm_array_write_u8(&output, channel->request.sender_invoke_id);
+            valid = valid && csm_array_write_u8(&output, ctx->asso->request.sender_invoke_id);
             valid = svc_data_access_result_encoder(&output, code);
 
-            if (channel->request.db_request.service == SVC_ACTION)
+            if (ctx->asso->request.db_request.service == SVC_ACTION)
             {
                 // Encode additional data if any
                 if (reply_size > 0U)
@@ -213,7 +276,7 @@ static csm_db_code svc_set_or_action_decoder(csm_server_context_t *ctx, csm_chan
                 }
             }
 
-            // Update size to send to output channel
+            // Update size to send to output
             array->wr_index = output.wr_index;
 
             if (!valid)
@@ -252,23 +315,23 @@ static csm_db_code svc_set_or_action_decoder(csm_server_context_t *ctx, csm_chan
     return code;
 }
 
-static csm_db_code svc_set_request_decoder(csm_server_context_t *ctx, csm_channel *channel, csm_array *array)
+static csm_db_code svc_set_request_decoder(csm_server_context_t *ctx, csm_array *array)
 {
-    channel->request.db_request.service = SVC_SET;
+    ctx->asso->request.db_request.service = SVC_SET;
     CSM_LOG("[SVC] Decoding SET.request");
-    return svc_set_or_action_decoder(ctx, channel, array);
+    return svc_set_or_action_decoder(ctx, array);
 }
 
 
-static csm_db_code svc_action_request_decoder(csm_server_context_t *ctx, csm_channel *channel, csm_array *array)
+static csm_db_code svc_action_request_decoder(csm_server_context_t *ctx, csm_array *array)
 {
-    channel->request.db_request.service = SVC_ACTION;
+    ctx->asso->request.db_request.service = SVC_ACTION;
     CSM_LOG("[SVC] Decoding ACTION.request");
-    return svc_set_or_action_decoder(ctx, channel, array);
+    return svc_set_or_action_decoder(ctx, array);
 }
 
 
-typedef csm_db_code (*svc_func)(csm_server_context_t *ctx, csm_channel *channel, csm_array *array);
+typedef csm_db_code (*svc_func)(csm_server_context_t *ctx, csm_array *array);
 
 
 typedef struct
@@ -288,7 +351,7 @@ static const csm_service_handler services[] =
 #define NUMBER_OF_SERVICES (sizeof(services) / sizeof(services[0]))
 
 
-int csm_server_services_execute(csm_server_context_t *ctx, csm_channel *channel, csm_array *array)
+int csm_server_services_execute(csm_server_context_t *ctx, csm_array *array)
 {
     int number_of_bytes = 0;
     // FIXME: test the array size: minimum/maximum data size allowed
@@ -303,7 +366,7 @@ int csm_server_services_execute(csm_server_context_t *ctx, csm_channel *channel,
                 if ((srv->tag == tag) && (srv->decoder != NULL))
                 {
                     CSM_LOG("[SVC] Found service");
-                    if (srv->decoder(ctx, channel, array) == CSM_OK)
+                    if (srv->decoder(ctx, array) == CSM_OK)
                     {
                         number_of_bytes = array->wr_index;
                     }
@@ -323,38 +386,25 @@ int csm_server_services_execute(csm_server_context_t *ctx, csm_channel *channel,
     return number_of_bytes;
 }
 
-int csm_server_hls_execute(csm_server_context_t *ctx, csm_channel *channel, csm_array *array)
+int csm_server_hls_execute(csm_server_context_t *ctx, csm_array *array)
 {
     // FIXME: restrict only to the current association object and reply_to_hls_authentication method
     CSM_LOG("[SVC] Received HLS Pass 3 -- FIXME accept only current association object");
 
-    return csm_server_services_execute(ctx, channel, array);
+    return csm_server_services_execute(ctx, array);
 }
 
- 
-void csm_server_init(csm_server_context_t *cosem_ctx)
+
+
+int csm_server_find_association(csm_server_context_t *ctx, int8_t channel_id)
 {
-    for (uint32_t i = 0U; i < cosem_ctx->asso_list_size; i++)
-    {
-        csm_asso_init(&cosem_ctx->asso_list[i]);
-    }
+    int ret = -1;
+    
 
-    for (uint32_t i = 0U; i < cosem_ctx->channel_list_size; i++)
-    {
-        cosem_ctx->channel_list[i].asso = NULL;
-        cosem_ctx->channel_list[i].request.channel_id = INVALID_CHANNEL_ID;
-    }
-}
-
-int csm_server_execute(csm_server_context_t *cosem_ctx, uint8_t channel, csm_array *packet)
-{
-    int ret = FALSE;
-
-    if ((cosem_ctx->channel_list == NULL) ||
-        (cosem_ctx->asso_list == NULL) ||
+    if ((cosem_ctx->asso_list == NULL) ||
         (cosem_ctx->asso_conf_list == NULL))
     {
-        CSM_ERR("[CHAN] Stack is not initialized. Call csm_channel_init() first.");
+        CSM_ERR("[CHAN] Stack is not initialized. Call csm_server_init() first.");
         return ret;
     }
 
@@ -362,21 +412,31 @@ int csm_server_execute(csm_server_context_t *cosem_ctx, uint8_t channel, csm_arr
 
     // We have to find the association used by this request
     // Find the valid association.
-    for (i = 0U; i < cosem_ctx->asso_list_size; i++)
+    for (i = 0U; i < cosem_ctx->nb_assos; i++)
     {
-        if ((cosem_ctx->channel_list[channel].request.llc.ssap == cosem_ctx->asso_conf_list[i].llc.ssap) &&
-            (cosem_ctx->channel_list[channel].request.llc.dsap == cosem_ctx->asso_conf_list[i].llc.dsap))
+        if ((cosem_ctx->request.llc.ssap == cosem_ctx->asso_conf_list[i].llc.ssap) &&
+            (cosem_ctx->request.llc.dsap == cosem_ctx->asso_conf_list[i].llc.dsap))
         {
             break;
         }
     }
 
-    if (i < cosem_ctx->asso_list_size)
+    if (i < cosem_ctx->nb_assos)
     {
         // Association found, use this one
         // Link the state with the configuration structure
         cosem_ctx->asso_list[i].config = &cosem_ctx->asso_conf_list[i];
-        cosem_ctx->channel_list[channel].asso = &cosem_ctx->asso_list[i];
+        cosem_ctx->asso = &cosem_ctx->asso_list[i];
+
+
+    return ret;
+}
+
+
+ 
+int csm_server_execute(csm_server_context_t *cosem_ctx, csm_array *packet)
+{
+    int ret = FALSE;
 
         uint8_t tag;
         if (csm_array_get(packet, 0U, &tag))
@@ -388,16 +448,27 @@ int csm_server_execute(csm_server_context_t *cosem_ctx, uint8_t channel, csm_arr
             case CSM_ASSO_RLRE:
             case CSM_ASSO_RLRQ:
                 ret = csm_asso_server_execute(&cosem_ctx->asso_list[i], packet);
+
+                if (tag == CSM_ASSO_AARE)
+                {
+                    static csm_server_context_t meter_ctx = {
+                        .db_access_func = csm_db_access_func,
+                        .db = &database
+                    };
+                    
+
+
+                }
                 break;
             default:
                 if (cosem_ctx->asso_list[i].state_cf == CF_ASSOCIATED)
                 {
-                    ret = csm_server_services_execute(cosem_ctx, &cosem_ctx->channel_list[channel], packet);
+                    ret = csm_server_services_execute(cosem_ctx, packet);
                 }
                 else if (cosem_ctx->asso_list[i].state_cf == CF_ASSOCIATION_PENDING)
                 {
                     // In case of HLS, we have to access to one attribute
-                    ret = csm_server_hls_execute(cosem_ctx, &cosem_ctx->channel_list[channel], packet);
+                    ret = csm_server_hls_execute(cosem_ctx, packet);
                 }
                 else
                 {
@@ -411,33 +482,33 @@ int csm_server_execute(csm_server_context_t *cosem_ctx, uint8_t channel, csm_arr
 }
 
 
-uint8_t csm_server_connect(csm_server_context_t *cosem_ctx)
+int8_t csm_server_connect(csm_server_context_t *cosem_ctx, int)
 {
-    uint8_t chan_id = INVALID_CHANNEL_ID;
-    // search for a valid free channel
-    // In case of CONN_NEW event, channel parameter is 0 (means invalid)
-    for (uint32_t i = 0U; i < cosem_ctx->channel_list_size; i++)
+    int8_t channel_id = CSM_CHANNEL_INVALID_ID;
+    // search for a valid free ctx->asso
+    // In case of CONN_NEW event, ctx->asso parameter is 0 (means invalid)
+    for (uint32_t i = 0U; i < cosem_ctx->nb_channels; i++)
     {
-        if (cosem_ctx->channel_list[i].request.channel_id == INVALID_CHANNEL_ID)
+        if (cosem_ctx->channel_list[i].request.channel_id == CSM_CHANNEL_INVALID_ID)
         {
-            chan_id = i + 1U; // generate a channel id
-            cosem_ctx->channel_list[i].request.channel_id = chan_id;
-            CSM_LOG("[CHAN] Grant connection to channel %d", chan_id);
+            channel_id = i + 1U; // generate a ctx->asso id
+            cosem_ctx->channel_list[i].request.channel_id = channel_id;
+            CSM_LOG("[CHAN] Grant connection to ctx->asso %d", channel_id);
             break;
         }
     }
 
-    return chan_id;
+    return channel_id;
 }
 
-void csm_server_disconnect(csm_server_context_t *cosem_ctx, uint8_t channel)
+void csm_server_disconnect(csm_server_context_t *cosem_ctx, int8_t channel_id)
 {
-    if (channel < cosem_ctx->channel_list_size)
+    if (channel_id < cosem_ctx->nb_channels)
     {
-        cosem_ctx->channel_list[channel].request.channel_id = INVALID_CHANNEL_ID;
-        if (cosem_ctx->channel_list[channel].asso != NULL)
+        cosem_ctx->channel_list[channel_id].request.channel_id = CSM_CHANNEL_INVALID_ID;
+        if (cosem_ctx->channel_list[channel_id].asso != NULL)
         {
-            cosem_ctx->channel_list[channel].asso->state_cf = CF_IDLE;
+            cosem_ctx->channel_list[channel_id].asso->state_cf = CF_IDLE;
         }
     }
 }

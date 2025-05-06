@@ -27,9 +27,9 @@ typedef enum
     // These two error codes can be used in priority
     CSM_OK,                 //!< Request OK
     CSM_OK_BLOCK,           //!< Request OK, ask for a block transfer (not enough space to store the data)
+    
+    // Errors
     CSM_ERR_OBJECT_ERROR,   //!< Generic error coming from the object
-
-    // Some more specific errors
     CSM_ERR_OBJECT_NOT_FOUND,    //!< Not found in the database, check obis code!
     CSM_ERR_BAD_ENCODING,        //!< Bad encoding of codec
     CSM_ERR_UNAUTHORIZED_ACCESS, //!< Attribute access problem

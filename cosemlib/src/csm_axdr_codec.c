@@ -208,11 +208,17 @@ int csm_axdr_wr_enum(csm_array *array, uint8_t value)
     return valid;
 }
 
-
 int csm_axdr_wr_u16(csm_array *array, uint16_t value)
 {
     int valid = csm_array_write_u8(array, AXDR_TAG_UNSIGNED16);
     valid = valid && csm_array_write_u16(array, value);
+    return valid;
+}
+
+int csm_axdr_wr_u32(csm_array *array, uint32_t value)
+{
+    int valid = csm_array_write_u8(array, AXDR_TAG_UNSIGNED32);
+    valid = valid && csm_array_write_u32(array, value);
     return valid;
 }
 

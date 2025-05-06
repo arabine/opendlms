@@ -13,7 +13,7 @@
 #include "csm_association.h"
 #include "string.h"
 #include "csm_axdr_codec.h"
-
+#include "csm_security.h"
 
 // Since this is part of a Cosem stack, simplify the decoding to lower code & RAM ;
 // Instead of performing a real decoding, just compare the memory as it is always the same
@@ -905,9 +905,10 @@ static csm_acse_code acse_user_info_encoder(csm_asso_state *state, csm_ber *ber,
         valid = valid && asce_conformance_block_encoder(array, state->config->conformance);
 
         // server-max-receive-pdu-size
-        uint8_t byte = (CSM_DEF_PDU_SIZE >> 8U) & 0xFFU;
+        uint16_t server_pdu_size = csm_array_data_size(array);
+        uint8_t byte = (server_pdu_size >> 8U) & 0xFFU;
         valid = valid && csm_array_write_u8(array, byte);
-        byte = CSM_DEF_PDU_SIZE & 0xFFU;
+        byte = server_pdu_size & 0xFFU;
         valid = valid && csm_array_write_u8(array, byte);
 
         if ((state->ref == LN_REF) || (state->ref == LN_REF_WITH_CYPHERING))
@@ -999,7 +1000,11 @@ void csm_asso_init(csm_asso_state *state)
     state->auth_level = CSM_AUTH_LOWEST_LEVEL;
     state->ref = NO_REF;
     state->handshake.result = CSM_ASSO_ERR_NULL;
+    state->current_block = 0;
+    state->state = CSM_RESPONSE_STATE_START;
+    state->nb_loops = 0;
 }
+
 
 // Check is association is granted
 int csm_asso_is_granted(csm_asso_state *state)
@@ -1254,3 +1259,132 @@ int csm_asso_server_execute(csm_asso_state *asso, csm_array *packet)
 
     return bytes_to_reply;
 }
+
+
+int csm_asso_hls_pass3(csm_asso_state *state, csm_array *array)
+{
+    csm_sec_control_byte sc;
+    uint32_t ic;
+    int ret = FALSE;
+
+    csm_array_dump(array);
+
+    // Save SC and IC
+    csm_array_read_u8(array, &sc.sh_byte);
+    csm_array_read_u32(array, &ic);
+
+    // Remaining data should be the TAG
+    uint32_t unread = csm_array_unread(array);
+
+    if (unread == 12U)
+    {
+        uint32_t offset = array->offset; // Save the original offset
+
+        if (offset >= CSM_DEF_MAX_HLS_SIZE)
+        {
+            csm_asso_state *asso = ctx->asso;
+
+            // Reserve memory & prepare packet
+            array->offset = (offset + array->rd_index) - (CSM_DEF_SEC_HDR_SIZE + asso->handshake.stoc.size);
+            array->rd_index = 0U;
+            array->wr_index = 0U;
+
+            // Build a new fake packet with: SC || IC || Information || Tag
+            // Tag is left untouched, other data are appended just before
+            csm_array_write_u8(array, sc.sh_byte);
+            csm_array_write_u32(array, ic);
+            csm_array_write_buff(array, &asso->handshake.stoc.value[0], asso->handshake.stoc.size);
+            csm_array_writer_jump(array, 12U); // Add the tag (already in the buffer)
+
+            csm_sec_result res = csm_sec_auth_decrypt(array, &asso->request, &asso->client_app_title[0]);
+
+            array->offset = offset; // Restore original offset
+
+            if (res == CSM_SEC_OK)
+            {
+                CSM_LOG("[CHAN] HLS Pass 3 success!");
+                ret = TRUE;
+            }
+            else
+            {
+                CSM_ERR("[CHAN] Bad tag");
+            }
+        }
+        else
+        {
+            CSM_ERR("[CHAN] Array too small for HLS");
+        }
+    }
+    else
+    {
+        CSM_ERR("[CHAN] Bad HLS Pass3 size");
+    }
+
+    return ret;
+}
+
+int csm_asso_hls_pass4(csm_asso_state *state, csm_array *array)
+{
+    int ret = FALSE;
+    // Output buffer state before function call
+    //    | offset |
+    // rd           ^
+    // wr           ^
+
+
+    // Buffer contents prepared for security processing
+    //    | reduced offset | Information (CtoS) | T
+    // rd                   ^
+    // wr                                        ^ (tag is appended)
+
+    // Output buffer state at the end of the function call
+    //    | offset |  OctetString | SC | IC | T |
+    // rd           ^
+    // wr                                        ^
+
+    csm_sec_control_byte sc;
+    sc.sh_byte = 0U;
+    sc.sh_bit_field.authentication = 1U; // Turn on only authentication
+
+    uint32_t ic = 0x01234567U; // FIXME: get the IC from the vital data manager
+    uint32_t offset = array->offset; // save offset
+
+    if (offset >= CSM_DEF_MAX_HLS_SIZE)
+    {
+        csm_asso_state *asso = ctx->asso;       
+
+        array->offset = offset - (asso->handshake.ctos.size - CSM_DEF_SEC_HDR_SIZE - 2U); // 2U is the OctetString encoding
+        // Write information data to authenticate
+        csm_array_write_buff(array, &asso->handshake.ctos.value[0], asso->handshake.ctos.size);
+
+        csm_sec_result res = csm_sec_auth_encrypt(array, &asso->request, csm_sys_get_system_title(), sc, ic);
+
+        array->offset = offset; // restore offset
+        array->wr_index = 0;
+
+        int valid = csm_array_write_u8(array, AXDR_TAG_OCTETSTRING);
+        valid = valid && csm_ber_write_len(array, 17U);
+        valid = valid && csm_array_write_u8(array, sc.sh_byte);
+        valid = valid && csm_array_write_u32(array, ic);
+        valid = valid && csm_array_writer_jump(array, 12U);
+
+        if ((res == CSM_SEC_OK) && valid)
+        {
+            CSM_LOG("[CHAN] HLS Pass 4 success!");
+            ret = TRUE;
+        }
+        else
+        {
+            CSM_ERR("[CHAN] HLS Pass 4 failure");
+        }
+    }
+    else
+    {
+        CSM_ERR("[CHAN] Array too small for HLS pass 4");
+    }
+
+    return ret;
+}
+
+
+

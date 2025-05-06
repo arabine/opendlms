@@ -17,7 +17,29 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <stdio.h>
+#include <assert.h>
 #include "csm_array.h"
+
+
+#define TRUE 1
+#define FALSE 0
+
+#ifndef CSM_ASSERT
+#define CSM_ASSERT(condition) assert(condition)
+#endif
+
+#ifndef CSM_TRACE
+#define CSM_TRACE(...) printf(__VA_ARGS__)
+#endif
+
+#ifndef CSM_LOG
+#define CSM_LOG(...) printf("[LOG]");printf(__VA_ARGS__);printf("\r\n")
+#endif
+
+#ifndef CSM_ERR
+#define CSM_ERR(...) printf("[ERR]");printf(__VA_ARGS__);printf("\r\n")
+#endif
 
 
 #define CSM_DEF_LIB_VERSION         "1.0"
@@ -28,6 +50,11 @@ extern "C" {
 #define CSM_DEF_APP_TITLE_SIZE      8U
 #define CSM_DEF_CHALLENGE_SIZE      64U
 #define CSM_DEF_MAX_HLS_SIZE        (1U + 16U + CSM_DEF_CHALLENGE_SIZE) // SC + AK + Challenge
+
+#define CSM_CHANNEL_INVALID_ID -1
+
+#define COSEM_WRAPPER_SIZE 8U
+
 
 /**
  * @brief The xdlms_tag enum
@@ -136,7 +163,7 @@ typedef struct
     uint8_t sender_invoke_id;
     enum svc_request type; // Type of the request (normal, next ...)
     csm_llc llc;
-    uint8_t channel_id; // Channel in use
+    int8_t channel_id; // Channel in use
 
 } csm_request;
 
@@ -283,9 +310,9 @@ void csm_hal_sha1(const uint8_t *input, uint32_t size, uint8_t *output);
  */
 void csm_hal_sha256(const uint8_t *input, uint32_t size, uint8_t *output);
 
-int csm_sys_gcm_init(uint8_t channel, uint8_t sap, csm_sec_key key_id, csm_sec_mode mode, const uint8_t *iv, const uint8_t *aad, uint32_t aad_len);
-int csm_sys_gcm_update(uint8_t channel, const uint8_t *plain, uint32_t plain_len, uint8_t *crypt);
-int csm_sys_gcm_finish(uint8_t channel, uint8_t *tag);
+int csm_sys_gcm_init(int8_t channel_id, uint8_t sap, csm_sec_key key_id, csm_sec_mode mode, const uint8_t *iv, const uint8_t *aad, uint32_t aad_len);
+int csm_sys_gcm_update(int8_t channel_id, const uint8_t *plain, uint32_t plain_len, uint8_t *crypt);
+int csm_sys_gcm_finish(int8_t channel_id, uint8_t *tag);
 
 #ifdef __cplusplus
 }

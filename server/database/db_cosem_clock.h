@@ -8,7 +8,7 @@ extern "C" {
 #include "app_database.h"
 #include "csm_definitions.h"
 
-csm_db_code db_cosem_clock_func(csm_server_context_t *ctx, csm_channel *channel, csm_array *in, csm_array *out);
+csm_db_code db_cosem_clock_func(csm_server_context_t *ctx, csm_array *in, csm_array *out);
 
 #ifdef __cplusplus
 }

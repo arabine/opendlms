@@ -18,7 +18,6 @@ extern "C" {
 
 #include "csm_definitions.h"
 #include "csm_association.h"
-#include "csm_channel.h"
 #include "csm_database.h"
 
 

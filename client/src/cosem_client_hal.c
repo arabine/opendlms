@@ -1,5 +1,4 @@
 // Cosem library
-#include "csm_config.h"
 #include "csm_association.h"
 #include "csm_definitions.h"
 
@@ -120,7 +119,7 @@ uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id)
 }
 
 
-int csm_sys_gcm_init(uint8_t channel, uint8_t sap, csm_sec_key key_id, csm_sec_mode mode, const uint8_t *iv, const uint8_t *aad, uint32_t aad_len)
+int csm_sys_gcm_init(int8_t channel_id, uint8_t sap, csm_sec_key key_id, csm_sec_mode mode, const uint8_t *iv, const uint8_t *aad, uint32_t aad_len)
 {
     int mbed_mode = (mode == CSM_SEC_ENCRYPT) ? MBEDTLS_GCM_ENCRYPT : MBEDTLS_GCM_DECRYPT;
     mbedtls_gcm_init(&chan_ctx[channel]);
@@ -129,14 +128,14 @@ int csm_sys_gcm_init(uint8_t channel, uint8_t sap, csm_sec_key key_id, csm_sec_m
     return (res == 0) ? TRUE : FALSE;
 }
 
-int csm_sys_gcm_update(uint8_t channel, const uint8_t *plain, uint32_t plain_len, uint8_t *crypt)
+int csm_sys_gcm_update(int8_t channel_id, const uint8_t *plain, uint32_t plain_len, uint8_t *crypt)
 {
     mbedtls_gcm_update(&chan_ctx[channel], plain_len, plain, crypt);
     return TRUE;
 }
 
 // Sizes are total sizes of plain and AAD
-int csm_sys_gcm_finish(uint8_t channel, uint8_t *tag)
+int csm_sys_gcm_finish(int8_t channel_id, uint8_t *tag)
 {
     mbedtls_gcm_finish(&chan_ctx[channel], tag, 16);
     return TRUE;

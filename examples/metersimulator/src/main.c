@@ -6,8 +6,6 @@
 // Cosem stack
 #include "csm_array.h"
 #include "csm_ber.h"
-#include "csm_channel.h"
-#include "csm_config.h"
 
 // Meter environment
 //#include "unity_fixture.h"
@@ -18,28 +16,11 @@
 #include "server_config.h"
 
 #include "db_cosem_object_list.h"
+#include "meter.h"
+#include "meter_definitions.h"
 
-static csm_db_context_t gDbContext;
+// Meter specific configuration
 
-const csm_asso_config assos_config[] =
-{
-    // Client public association
-    { {16U, 1U},
-      CSM_CBLOCK_GET | CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ,
-      0U, // No auto-connected
-    },
-
-    // Client management association
-    { {1U, 1U},
-      CSM_CBLOCK_GET | CSM_CBLOCK_ACTION | CSM_CBLOCK_SET |CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ | CSM_CBLOCK_SELECTIVE_ACCESS,
-      0U, // No auto-connected
-    }
-};
-
-#define NUMBER_OF_ASSOS (sizeof(assos_config) / sizeof(csm_asso_config))
-
-csm_asso_state assos[NUMBER_OF_ASSOS];
-csm_channel channels[NUMBER_OF_CHANNELS];
 
 
 // Buffer has the following format:
@@ -49,13 +30,45 @@ csm_channel channels[NUMBER_OF_CHANNELS];
 // wrapper: Cosem standard TCP wrapper (4 words)
 // APDU: Cosem APDU
 
-static const uint16_t COSEM_WRAPPER_VERSION = 0x0001U;
-#define COSEM_WRAPPER_SIZE 8U
-#define BUF_SIZE (CSM_DEF_PDU_SIZE + CSM_DEF_MAX_HLS_SIZE + COSEM_WRAPPER_SIZE)
 
 
-#define BUF_WRAPPER_OFFSET  (CSM_DEF_MAX_HLS_SIZE)
-#define BUF_APDU_OFFSET     (COSEM_WRAPPER_SIZE + CSM_DEF_MAX_HLS_SIZE)
+#define BUF_SIZE (METER_PDU_SIZE + CSM_DEF_MAX_HLS_SIZE + COSEM_WRAPPER_SIZE)
+
+
+static csm_db_t database = {
+    .el = gDataBaseList,
+    .size = COSEM_DATABASE_SIZE,
+};
+
+
+typedef struct
+{
+    uint8_t rx_buffer[BUF_SIZE];
+    uint8_t tx_buffer[BUF_SIZE];
+    uint8_t scratch_buffer[METER_SCRATCH_BUF_SIZE];    
+} asso_buffers_t;
+
+static asso_buffers_t com_buffers[METER_NUMBER_OF_ASSOCIATIONS];
+
+static csm_asso_state assos[METER_NUMBER_OF_ASSOCIATIONS];
+
+
+static const csm_asso_config default_assos_config[] =
+{
+    // Public association
+    { {16U, 1U},
+      CSM_CBLOCK_GET | CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ,
+      0U, // No auto-connected
+    },
+
+    // Client management association
+    { {1U, 1U},
+        CSM_CBLOCK_GET | CSM_CBLOCK_ACTION | CSM_CBLOCK_SET |CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ | CSM_CBLOCK_SELECTIVE_ACCESS,
+        0U, // No auto-connected
+    }
+};
+
+#define NUMBER_OF_ASSOS (sizeof(default_assos_config) / sizeof(csm_asso_config))
 
 
 /**
@@ -68,17 +81,18 @@ static const uint16_t COSEM_WRAPPER_VERSION = 0x0001U;
  * The data link layer is application specific - but rather simple - and must be implemented
  * in the application side. Thus, the DLMS/Cosem stack remains agnostic on the transport layer.
  *
+ * @param channel_id: index of the association used
  * @param buffer
  * @param size
  * @return > 0 the number of bytes to reply back to the sender
  */
-int tcp_data_handler(uint8_t channel, memory_t *b, uint32_t payload_size)
-{
+int tcp_data_handler(int8_t channel_id, uint8_t *buffer, uint32_t payload_size)
+{   
     int ret = -1;
     uint16_t version;
     uint16_t apdu_size;
     csm_array packet;
-    uint8_t *buffer = b->data + b->offset;
+
 
     // The TCP/IP Cosem packet is sent with a header. See GreenBook 8 7.3.3.2 The wrapper protocol data unit (WPDU)
 
@@ -88,47 +102,27 @@ int tcp_data_handler(uint8_t channel, memory_t *b, uint32_t payload_size)
     // Length: 2 bytes
     CSM_LOG("[LLC] TCP Packet received");
 
-    print_hex((uint8_t *)buffer, payload_size);
+    print_hex((const char *)(buffer), payload_size);
 
-    if ((payload_size > COSEM_WRAPPER_SIZE) && (channel < NUMBER_OF_CHANNELS))
+    csm_request request;
+
+    if ((payload_size > COSEM_WRAPPER_SIZE)
     {
         version = GET_BE16(&buffer[0U]);
-        channels[channel].request.llc.ssap = GET_BE16(&buffer[2]);
-        channels[channel].request.llc.dsap = GET_BE16(&buffer[4]);
+        ctx->channels[channel].request.llc.ssap = GET_BE16(&buffer[2]);
+        ctx->channels[channel].request.llc.dsap = GET_BE16(&buffer[4]);
         apdu_size = GET_BE16(&buffer[6]);
 
         // Sanity check of the packet
         if ((payload_size == (apdu_size + COSEM_WRAPPER_SIZE)) &&(version == COSEM_WRAPPER_VERSION))
         {
-            print_hex((uint8_t *)&b->data[BUF_APDU_OFFSET], apdu_size);
+            print_hex((const char *)(&b->data[BUF_APDU_OFFSET]), apdu_size);
 
-            // Then decode the packet, the reply, if any is located in the buffer
-            // The reply is valid if the return code is > 0
-            csm_array_init(&packet, (uint8_t *)&b->data[0], b->max_size, apdu_size, BUF_APDU_OFFSET);
-            ret = csm_channel_execute(&gDbContext, channel, &packet);
 
-            if (ret > 0)
-            {
-                print_hex((uint8_t *)&b->data[BUF_APDU_OFFSET], ret);
+            ret = meter_handle_message(&meter_ctx, channel, b, payload_size);
 
-                // Set Version
-                PUT_BE16(&buffer[0], version);
-
-                // Swap SSAP and DSAP
-                PUT_BE16(&buffer[2], channels[channel].request.llc.dsap);
-                PUT_BE16(&buffer[4], channels[channel].request.llc.ssap);
-
-                // Update Cosem Wrapper length
-                PUT_BE16(&buffer[6], (uint16_t) ret);
-
-                // Add wrapper size to the data packet size
-                ret += COSEM_WRAPPER_SIZE;
-            }
         }
-        else
-        {
-            CSM_ERR("[LLC] Bad Packet received");
-        }
+
     }
     else
     {
@@ -138,19 +132,21 @@ int tcp_data_handler(uint8_t channel, memory_t *b, uint32_t payload_size)
     return ret;
 }
 
-uint8_t tcp_conn_handler(uint8_t channel, enum conn_event event)
+
+
+
+uint8_t tcp_conn_handler(int8_t channel_id, enum conn_event event)
 {
     uint8_t ret = FALSE;
     switch(event)
     {
     case CONN_DISCONNECTED:
     {
-        if (channel > INVALID_CHANNEL_ID)
+        if (channel_id > CSM_CHANNEL_INVALID_ID)
         {
-            channel--; // transform id into index
-            csm_channel_disconnect(channel);
+            meter_disconnect(&meter_ctx, channel_id);
             ret = TRUE;
-            CSM_ERR("[LLC] Channel %d disconnected", channel);
+            CSM_ERR("[LLC] Channel %d disconnected", channel_id);
         }
         else
         {
@@ -161,7 +157,8 @@ uint8_t tcp_conn_handler(uint8_t channel, enum conn_event event)
 
     case CONN_NEW:
     {
-        ret = csm_channel_new();
+        meter_connect(&meter_ctx);
+        ret = meter_ctx.currentChannel;
         if (!ret)
         {
             CSM_ERR("[LLC] Cannot find free channel slot");
@@ -178,40 +175,32 @@ uint8_t tcp_conn_handler(uint8_t channel, enum conn_event event)
 }
 
 
-// Application & stack initialization
-void csm_init()
-{
-    srand(time(NULL)); // seed init
-
-    // DLMS/Cosem stack initialization
-    gDbContext.db = gDataBaseList;
-    gDbContext.size = COSEM_DATABASE_SIZE;
-
-    csm_db_set_database(gDataBaseList, COSEM_DATABASE_SIZE);
-    csm_services_init(csm_db_access_func);
-    csm_channel_init(&channels[0], NUMBER_OF_CHANNELS, &assos[0], &assos_config[0], NUMBER_OF_ASSOS);
-}
-
-
-
 int main(int argc, const char * argv[])
 {
     (void) argc;
     (void) argv;
 
-    uint8_t gBuffer[BUF_SIZE]; // working buffer, keep it private
+    // Init random seed
+    srand(time(NULL));
 
-    // Debug: fill buffer with pattern
-    memset(&gBuffer[0], 0xAA, BUF_SIZE);
+    // Initialize the communication buffers for all the associations
+    for (uint32_t i = 0U; i < METER_NUMBER_OF_ASSOCIATIONS; i++)
+    {
+        csm_array_init(&meter_ctx.asso_list[i].rx, com_buffers[i].rx_buffer, sizeof(com_buffers[i].rx_buffer), 0U, BUF_APDU_OFFSET);
+        csm_array_init(&meter_ctx.asso_list[i].tx, com_buffers[i].tx_buffer, sizeof(com_buffers[i].tx_buffer), 0U, BUF_APDU_OFFSET);
+        csm_array_init(&meter_ctx.asso_list[i].scratch, com_buffers[i].scratch_buffer, sizeof(com_buffers[i].scratch_buffer), 0U, BUF_APDU_OFFSET);
+        csm_asso_init(&assos[i]);
+    }
 
-    memory_t buff;
-    buff.data = &gBuffer[0];
-    buff.offset = BUF_WRAPPER_OFFSET;
-    buff.max_size = BUF_SIZE;
-
-    csm_init();
+    meter_cosem_stack_initialize(&meter_ctx, csm_db_access_func, &database);
+    
     printf("Starting DLMS/Cosem meter simulator\r\nCosem library version: %s\r\n\r\n", CSM_DEF_LIB_VERSION);
 
-    return tcp_server_init(tcp_data_handler, tcp_conn_handler, &buff, TCP_PORT);
+    int ret = tcp_server_init(tcp_data_handler, tcp_conn_handler, TCP_PORT);
+
+ 
+    printf("Exiting DLMS/Cosem meter simulator\r\n");
+
+    return ret;
 }
 
