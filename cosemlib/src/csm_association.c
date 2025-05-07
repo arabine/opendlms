@@ -556,7 +556,7 @@ static csm_acse_code acse_skip_decoder(csm_asso_state *state, csm_ber *ber, csm_
     {
         // This BER contains data that is not managed
         // advance the pointer to the next BER header
-        (void) csm_array_reader_jump(array, ber->length.length);
+        (void) csm_array_reader_advance(array, ber->length.length);
     }
     CSM_LOG("[ACSE] Skipped tag: %d", ber->tag.tag);
     return CSM_ACSE_OK;
@@ -996,7 +996,7 @@ static const csm_asso_enc aarq_encoder_chain[] =
 
 void csm_asso_init(csm_asso_state *state)
 {
-    state->state_cf = CF_IDLE;
+    state->state_cf = CF_INACTIVE;
     state->auth_level = CSM_AUTH_LOWEST_LEVEL;
     state->ref = NO_REF;
     state->handshake.result = CSM_ASSO_ERR_NULL;
@@ -1124,7 +1124,7 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array, uint8_t tag)
                     }
                     else
                     {
-                        (void) csm_array_reader_jump(array, ber.length.length);
+                        (void) csm_array_reader_advance(array, ber.length.length);
                         CSM_LOG("[ACSE] Skipped tag: %d", ber.tag.tag);
                         //CSM_ERR("Decoded tag: %d (0x%X), expected tag: %d (0x%X)", ber.tag.tag, ber.tag.tag, codec[decoder_index].tag, codec[decoder_index].tag);
                     }
@@ -1202,13 +1202,13 @@ int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag)
     return ret;
 }
 
-int csm_asso_server_execute(csm_asso_state *asso, csm_array *packet)
+int csm_asso_server_execute(csm_asso_state *asso)
 {
     int bytes_to_reply = 0;
 
     if (asso->state_cf  == CF_IDLE)
     {
-        if (csm_asso_decoder(asso, packet, CSM_ASSO_AARQ))
+        if (csm_asso_decoder(asso, &asso->rx, CSM_ASSO_AARQ))
         {
             if (csm_asso_is_granted(asso))
             {
@@ -1221,9 +1221,9 @@ int csm_asso_server_execute(csm_asso_state *asso, csm_array *packet)
             }
 
             // Send AARE, success or failure
-            if (csm_asso_encoder(asso, packet, CSM_ASSO_AARE))
+            if (csm_asso_encoder(asso, &asso->tx, CSM_ASSO_AARE))
             {
-                bytes_to_reply = packet->wr_index;
+                bytes_to_reply = csm_array_written(&asso->tx);
                 CSM_LOG("[ACSE] AARE length: %d", bytes_to_reply);
              //   csm_array_dump(packet);
             }
@@ -1237,17 +1237,16 @@ int csm_asso_server_execute(csm_asso_state *asso, csm_array *packet)
     {
         uint8_t byte;
         // Associated, so maybe it is an RLRQ disconnection packet
-        if (csm_array_get(packet, 0U, &byte))
+        if (csm_array_get(&asso->rx, 0U, &byte))
         {
             if (byte == CSM_ASSO_RLRQ)
             {
                 CSM_LOG("[ACSE] RLRQ Received, send RLRE");
                 asso->state_cf = CF_IDLE;
-                packet->wr_index = 0U;
                 // FIXME: for now, send minimal fixed raw RLRE reply
                 static uint8_t rlre[] = { CSM_ASSO_RLRE, 3U, 0x80U, 0x01U, 0x00U };
 
-                csm_array_write_buff(packet, rlre, 5U);
+                csm_array_write_buff(&asso->tx, rlre, 5U);
                 bytes_to_reply = 5U;
             }
             else
@@ -1261,7 +1260,7 @@ int csm_asso_server_execute(csm_asso_state *asso, csm_array *packet)
 }
 
 
-int csm_asso_hls_pass3(csm_asso_state *state, csm_array *array)
+int csm_asso_hls_pass3(csm_asso_state *asso, csm_request *request, csm_array *array)
 {
     csm_sec_control_byte sc;
     uint32_t ic;
@@ -1282,8 +1281,6 @@ int csm_asso_hls_pass3(csm_asso_state *state, csm_array *array)
 
         if (offset >= CSM_DEF_MAX_HLS_SIZE)
         {
-            csm_asso_state *asso = ctx->asso;
-
             // Reserve memory & prepare packet
             array->offset = (offset + array->rd_index) - (CSM_DEF_SEC_HDR_SIZE + asso->handshake.stoc.size);
             array->rd_index = 0U;
@@ -1294,9 +1291,9 @@ int csm_asso_hls_pass3(csm_asso_state *state, csm_array *array)
             csm_array_write_u8(array, sc.sh_byte);
             csm_array_write_u32(array, ic);
             csm_array_write_buff(array, &asso->handshake.stoc.value[0], asso->handshake.stoc.size);
-            csm_array_writer_jump(array, 12U); // Add the tag (already in the buffer)
+            csm_array_writer_advance(array, 12U); // Add the tag (already in the buffer)
 
-            csm_sec_result res = csm_sec_auth_decrypt(array, &asso->request, &asso->client_app_title[0]);
+            csm_sec_result res = csm_sec_auth_decrypt(array, request, &asso->client_app_title[0]);
 
             array->offset = offset; // Restore original offset
 
@@ -1323,7 +1320,7 @@ int csm_asso_hls_pass3(csm_asso_state *state, csm_array *array)
     return ret;
 }
 
-int csm_asso_hls_pass4(csm_asso_state *state, csm_array *array)
+int csm_asso_hls_pass4(csm_asso_state *asso, csm_request *request, csm_array *array)
 {
     int ret = FALSE;
     // Output buffer state before function call
@@ -1351,13 +1348,11 @@ int csm_asso_hls_pass4(csm_asso_state *state, csm_array *array)
 
     if (offset >= CSM_DEF_MAX_HLS_SIZE)
     {
-        csm_asso_state *asso = ctx->asso;       
-
         array->offset = offset - (asso->handshake.ctos.size - CSM_DEF_SEC_HDR_SIZE - 2U); // 2U is the OctetString encoding
         // Write information data to authenticate
         csm_array_write_buff(array, &asso->handshake.ctos.value[0], asso->handshake.ctos.size);
 
-        csm_sec_result res = csm_sec_auth_encrypt(array, &asso->request, csm_sys_get_system_title(), sc, ic);
+        csm_sec_result res = csm_sec_auth_encrypt(array, request, csm_sys_get_system_title(), sc, ic);
 
         array->offset = offset; // restore offset
         array->wr_index = 0;
@@ -1366,7 +1361,7 @@ int csm_asso_hls_pass4(csm_asso_state *state, csm_array *array)
         valid = valid && csm_ber_write_len(array, 17U);
         valid = valid && csm_array_write_u8(array, sc.sh_byte);
         valid = valid && csm_array_write_u32(array, ic);
-        valid = valid && csm_array_writer_jump(array, 12U);
+        valid = valid && csm_array_writer_advance(array, 12U);
 
         if ((res == CSM_SEC_OK) && valid)
         {

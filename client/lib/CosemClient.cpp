@@ -155,7 +155,7 @@ bool CosemClient::HdlcProcess(Meter &meter, const std::string &send, std::string
 
             if (loop)
             {
-                uint8_t *ptr = csm_array_rd_data(&mRcvArray);
+                uint8_t *ptr = csm_array_rd_current(&mRcvArray);
                 uint32_t size = csm_array_unread(&mRcvArray);
 
 
@@ -169,8 +169,8 @@ bool CosemClient::HdlcProcess(Meter &meter, const std::string &send, std::string
                 if (dataSent.compare(0, dataSent.size(), (char*)ptr, size) == 0)
                 {
                     // remove echo from the string
-                    csm_array_reader_jump(&mRcvArray, size);
-                    ptr = csm_array_rd_data(&mRcvArray);
+                    csm_array_reader_advance(&mRcvArray, size);
+                    ptr = csm_array_rd_current(&mRcvArray);
                     size = csm_array_unread(&mRcvArray);
                     std::cout << "Echo canceled!" << std::endl;
                 }
@@ -201,7 +201,7 @@ bool CosemClient::HdlcProcess(Meter &meter, const std::string &send, std::string
                             rcv.append((const char*)&ptr[hdlc.data_index], hdlc.data_size);
 
                             // Continue with next one
-                            csm_array_reader_jump(&mRcvArray, hdlc.frame_size);
+                            csm_array_reader_advance(&mRcvArray, hdlc.frame_size);
 
                             if (hdlc.type == HDLC_PACKET_TYPE_I)
                             {
@@ -240,7 +240,7 @@ bool CosemClient::HdlcProcess(Meter &meter, const std::string &send, std::string
                             }
 
                             // go to next frame, if any
-                            ptr = csm_array_rd_data(&mRcvArray);
+                            ptr = csm_array_rd_current(&mRcvArray);
                             size = csm_array_unread(&mRcvArray);
                         }
                     }
@@ -492,12 +492,12 @@ Result CosemClient::Pass3And4(Meter &meter)
                     if (valid)
                     {
                         std::cout << "** Recieved CtoS: ";
-                        Transport::Printer((char*)csm_array_rd_data(&app_array), digest_size, PRINT_HEX);
+                        Transport::Printer((char*)csm_array_rd_current(&app_array), digest_size, PRINT_HEX);
                         std::cout << std::endl;
 
                         // Now compute the CtoS digest with the one we have computed
                         // FIXME: in GMAC, there is a security header
-                        if (!std::memcmp(csm_array_rd_data(&app_array), &digest_ctos[0U], digest_size))
+                        if (!std::memcmp(csm_array_rd_current(&app_array), &digest_ctos[0U], digest_size))
                         {
                             std::cout << "** HLS Pass 3 and 4 success! " << std::endl;
                         }
@@ -963,7 +963,7 @@ Result CosemClient::AccessObject(Meter &meter, const Object &obj, csm_request &r
                             if (response.type == SVC_RESPONSE_NORMAL)
                             {
                                 // We have the data, copy it to the application buffer and stop
-                                csm_array_write_buff(&app_array, csm_array_rd_data(&scratch_array), csm_array_unread(&scratch_array));
+                                csm_array_write_buff(&app_array, csm_array_rd_current(&scratch_array), csm_array_unread(&scratch_array));
                                 loop = false;
                                 dump = true;
                             }
@@ -976,7 +976,7 @@ Result CosemClient::AccessObject(Meter &meter, const Object &obj, csm_request &r
 									std::cout << "** Block of data of size: " << size << std::endl;
 									// FIXME: Test the size indicated in the packet and the real size received
 									// Add it
-									csm_array_write_buff(&app_array, csm_array_rd_data(&scratch_array), csm_array_unread(&scratch_array));
+									csm_array_write_buff(&app_array, csm_array_rd_current(&scratch_array), csm_array_unread(&scratch_array));
 
 									// Check if last block
 									if (csm_client_has_more_data(&response))

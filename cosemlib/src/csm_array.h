@@ -34,15 +34,16 @@ void csm_array_dump(csm_array *array);
 int csm_array_get(const csm_array *array, uint32_t index, uint8_t *byte);
 int csm_array_set(csm_array *array, uint32_t index, uint8_t byte);
 
-uint8_t *csm_array_rd_data(const csm_array *array);
-uint8_t *csm_array_wr_data(csm_array *array);
+uint8_t *csm_array_rd_current(const csm_array *array);
+uint8_t *csm_array_wr_current(csm_array *array);
+uint8_t *csm_array_start(csm_array *array);
 
 // Functions that advance the write pointer
 int csm_array_write_buff(csm_array *array, const uint8_t *buff, uint32_t size);
 int csm_array_write_u8(csm_array *array, uint8_t byte);
 int csm_array_write_u16(csm_array *array, uint16_t value);
 int csm_array_write_u32(csm_array *array, uint32_t value);
-int csm_array_writer_jump(csm_array *array, uint32_t nb_bytes);
+int csm_array_writer_advance(csm_array *array, uint32_t nb_bytes);
 int csm_array_write_array(csm_array *array, const csm_array *src_array);
 
 // Functions that advance the read pointer
@@ -50,10 +51,12 @@ int csm_array_read_buff(csm_array *array, uint8_t *to_buff, uint32_t size);
 int csm_array_read_u8(csm_array *array, uint8_t *byte);
 int csm_array_read_u16(csm_array *array, uint16_t *value);
 int csm_array_read_u32(csm_array *array, uint32_t *value);
-int csm_array_reader_jump(csm_array *array, uint32_t nb_bytes);
+int csm_array_reader_advance(csm_array *array, uint32_t nb_bytes);
 
 // return the remaining bytes to read
 uint32_t csm_array_unread(csm_array *array);
+// Return the data written so far
+uint32_t csm_array_written(const csm_array *array);
 
 // Return free size to write
 uint32_t csm_array_free_size(csm_array *array);
@@ -61,8 +64,7 @@ uint32_t csm_array_free_size(csm_array *array);
 // Return the data size, after the offset (thus, lower than the total buffer size)
 uint32_t csm_array_data_size(const csm_array *array);
 
-// Return the data written so far
-uint32_t csm_array_written(const csm_array *array);
+
 
 #ifdef __cplusplus
 }

@@ -4,6 +4,7 @@
 #include "hdlc.h"
 #include "csm_array.h"
 #include "csm_association.h"
+#include "meter.h"
 
 #include "catch.hpp"
 #include <iostream>
@@ -381,19 +382,17 @@ TEST_CASE("AARQ-ICube-EZReader", "[AARQ-Decoder]" )
     AARQDecoder(aarq_icube_ezreader, sizeof(aarq_icube_ezreader));
 }
 
-#include "soft_meter.h"
+
 
 TEST_CASE("ObjectList", "[OBJECT-ASSOCIATION]" )
 {
-    SoftMeter meter; 
+    meter_initialize();
+    int8_t channel_id = meter_connect();
 
-    meter.Initialize();
-    meter.AddDefaultAssociations();
-    meter.CosemStackInitialize();   
-    meter.Connect();
-
-    // AARQ (association connection)
-    meter.SendMessage("000100100001001F601DA109060760857405080101BE10040E01000000065F1F040062FEDFFFFF");
+    REQUIRE(channel_id >= 0);
+    // AARQ (association connection) with TCP wrapper
+    std::string aarq = "000100100001001F601DA109060760857405080101BE10040E01000000065F1F040062FEDFFFFF";
+    meter_send_ascii_tcp_message(channel_id, aarq.c_str(), aarq.size());
 
     // Object list
 
@@ -409,9 +408,10 @@ TEST_CASE("ObjectList", "[OBJECT-ASSOCIATION]" )
 //     </get-request-normal>
 //     </get-request>
 // </apdu_xml>
-    meter.SendMessage("000100100001000DC001C1000F0000280000FF0200");
+    std::string get_request = "000100100001000DC001C1000F0000280000FF0200";
+    meter_send_ascii_tcp_message(channel_id, get_request.c_str(), get_request.size());
 
-    meter.Disconnect();
+    meter_disconnect(channel_id);
 
 }
 

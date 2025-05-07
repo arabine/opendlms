@@ -11,6 +11,11 @@
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include <stdlib.h>
 #include <string.h>
 #include <time.h> // to initialize the seed
@@ -27,16 +32,16 @@
 #include "bitfield.h"
 #include "transports.h"
 
+void meter_initialize();
 
-void meter_cosem_stack_initialize(csm_server_context_t *ctx, csm_db_access_handler db_handler, csm_db_t *db);
+int8_t meter_connect();
+void meter_disconnect(int8_t channel_id);
+int meter_tcp_data_handler(int8_t channel_id, uint8_t *buffer, uint32_t payload_size, uint32_t buffer_size);
 
+// ASCII string of hexadecimal values TCP Wrapper + cosem APDU
+void meter_send_ascii_tcp_message(int8_t channel_id, const char *message, uint32_t size);
 
-void meter_connect(csm_server_context_t *ctx);
-void meter_disconnect(csm_server_context_t *ctx, int8_t channel_id);
-
-// ASCII string of hexadecimal values
-void meter_send_message(csm_server_context_t *ctx, const char *message, uint32_t size);
-
-int meter_handle_message(csm_server_context_t *ctx, int8_t channel_id, uint32_t payload_size);
-
+#ifdef __cplusplus
+}
+#endif
 

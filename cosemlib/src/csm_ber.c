@@ -176,9 +176,9 @@ int csm_ber_decode_object_identifier(ber_object_identifier *oid, csm_array *arra
     int ret = FALSE;
     if (array->size >= 7U)
     {
-        if (memcmp(csm_array_rd_data(array), oid->header, oid->size) == 0)
+        if (memcmp(csm_array_rd_current(array), oid->header, oid->size) == 0)
         {
-            ret = csm_array_reader_jump(array, oid->size);
+            ret = csm_array_reader_advance(array, oid->size);
             ret = ret && csm_array_read_u8(array, &oid->name); // Then copy the object name
             ret = ret && csm_array_read_u8(array, &oid->id); // Then copy the object id
         }

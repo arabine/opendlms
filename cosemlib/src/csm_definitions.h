@@ -132,8 +132,8 @@ typedef struct
 
 typedef struct
 {
-    uint16_t ssap; //< Client
-    uint16_t dsap; //< Server
+    uint16_t ssap; //< Client (association)
+    uint16_t dsap; //< Server (logical device target)
 } csm_llc;
 
 enum csm_service { SVC_UNKOWN, SVC_GET, SVC_SET, SVC_ACTION, SVC_EXCEPTION };

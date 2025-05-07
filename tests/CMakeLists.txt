@@ -15,7 +15,10 @@ add_executable(${PROJECT_NAME}
     test_hdlc.cpp
     test_clock.cpp
     test_aes128gcm.cpp
-    soft_meter.cpp
+    
+    # Fake meter
+    ../examples/metersimulator/src/meter.c
+
 
     # Add Cosem class ID files
     ../server/database/db_cosem_associations.c
@@ -31,6 +34,7 @@ enable_testing()
 target_include_directories(${PROJECT_NAME} PUBLIC 
     ../server/database 
     ../server/application
+    ../examples/metersimulator/src
 )
 
 # External libraries

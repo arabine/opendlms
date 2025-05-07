@@ -23,7 +23,13 @@ extern "C" {
 #include "csm_definitions.h"
 
 // States machine of the Control Function
-enum state_cf { CF_INACTIVE, CF_IDLE, CF_ASSOCIATION_PENDING, CF_ASSOCIATED, CF_ASSOCIATION_RELEASE_PENDING };
+enum state_cf { 
+    CF_INACTIVE, 
+    CF_IDLE, 
+    CF_ASSOCIATION_PENDING,  //!< Conected on Link layer (not yet connected on ACSE)
+    CF_ASSOCIATED, 
+    CF_ASSOCIATION_RELEASE_PENDING
+};
 
 /* GreenBook 8
  * 9.4.2.2.2        The COSEM application context
@@ -216,7 +222,6 @@ typedef struct
     // The entry is then splitted into multiple blocks
     uint32_t current_loop;
     uint32_t nb_loops;
-
   
     csm_array rx;
     csm_array tx;
@@ -230,12 +235,12 @@ typedef struct
 } csm_asso_state;
 
 void csm_asso_init(csm_asso_state *state);
-int csm_asso_server_execute(csm_asso_state *state, csm_array *packet);
+int csm_asso_server_execute(csm_asso_state *asso);
 int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag);
 int csm_asso_decoder(csm_asso_state *state, csm_array *array, uint8_t tag);
 
-int csm_asso_hls_pass3(csm_asso_state *state, csm_array *array);
-int csm_asso_hls_pass4(csm_asso_state *state, csm_array *array);
+int csm_asso_hls_pass3(csm_asso_state *asso, csm_request *request, csm_array *array);
+int csm_asso_hls_pass4(csm_asso_state *asso, csm_request *request, csm_array *array);
 
 
 #ifdef __cplusplus

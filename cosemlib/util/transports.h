@@ -7,7 +7,7 @@
 /**
  * @brief Cosem handler called from the transport layer upon reception of data
  */
-typedef int (*data_handler)(int8_t channel_id, uint8_t *data, uint32_t size);
+typedef int (*data_handler)(int8_t channel_id, uint8_t *data, uint32_t payload_size, uint32_t buffer_size);
 
 /**
  * @brief Connection handler called from the transport

@@ -86,7 +86,9 @@
         "csm_config.h": "c",
         "transports.h": "c",
         "meter_definitions.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "meter.h": "c",
+        "db_cosem_associations.h": "c"
     },
     "cmake.sourceDirectory": [
         "${workspaceFolder}/tests",

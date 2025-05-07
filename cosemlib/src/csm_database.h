@@ -109,6 +109,7 @@ typedef struct
 {
     const struct db_element *el;
     uint32_t size;
+    uint16_t logical_device;
 
 } csm_db_t;
 

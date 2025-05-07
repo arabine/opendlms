@@ -19,14 +19,14 @@ csm_db_code db_cosem_clock_func(csm_server_context_t *ctx, csm_array *in, csm_ar
     csm_db_code code = CSM_ERR_OBJECT_ERROR;
     (void) in;
 
-    if (ctx->asso->request.db_request.service == SVC_GET)
+    if (ctx->request.db_request.service == SVC_GET)
     {
         if (csm_axdr_wr_octetstring(out, &date_time[0], 12U))
         {
             code = CSM_OK;
         }
     }
-    else if (ctx->asso->request.db_request.service == SVC_SET)
+    else if (ctx->request.db_request.service == SVC_SET)
     {
         // Not implemented
     }

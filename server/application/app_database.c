@@ -84,15 +84,15 @@ static int csm_db_get_object(csm_server_context_t *ctx, db_obj_handle *handle)
         {
             const db_object_descr *curr_obj = &obj_list->objects[object_index];
             // Check the obis code
-            if ((curr_obj->class_id == ctx->asso->request.db_request.logical_name.class_id) &&
-                     csm_is_obis_equal(&curr_obj->obis_code, &(ctx->asso->request.db_request.logical_name.obis)))
+            if ((curr_obj->class_id == ctx->request.db_request.logical_name.class_id) &&
+                     csm_is_obis_equal(&curr_obj->obis_code, &(ctx->request.db_request.logical_name.obis)))
             {
                 handle->object       = curr_obj;
                 handle->db_index     = i;
                 handle->obj_index    = object_index;
 
                 // Verify that this object contains the suitable method/attribute and if we can access to it
-                found = csm_db_check_attribute(&ctx->asso->request.db_request, curr_obj);
+                found = csm_db_check_attribute(&ctx->request.db_request, curr_obj);
             }
         }
     }
@@ -125,7 +125,7 @@ csm_db_code csm_db_access_func(csm_server_context_t *ctx, csm_array *in, csm_arr
     else
     {
         CSM_ERR("[DB] Cosem object not found: ");
-        csm_print_obis(&ctx->asso->request.db_request.logical_name);
+        csm_print_obis(&ctx->request.db_request.logical_name);
         code = CSM_ERR_OBJECT_NOT_FOUND;
     }
 

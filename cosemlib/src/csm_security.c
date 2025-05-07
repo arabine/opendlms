@@ -30,7 +30,7 @@ csm_sec_result csm_sec_auth_decrypt(csm_array *array, csm_request *request, cons
     memcpy(&IV[0], &system_title[0], CSM_DEF_APP_TITLE_SIZE);
     PUT_BE32(&IV[CSM_DEF_APP_TITLE_SIZE], ic);
 
-    uint8_t *data = csm_array_rd_data(array); // point to the information or tag
+    uint8_t *data = csm_array_rd_current(array); // point to the information or tag
 
     uint32_t unread = csm_array_unread(array); // size of information + tag
 
@@ -122,7 +122,7 @@ csm_sec_result csm_sec_auth_encrypt(csm_array *array, csm_request *request, cons
     memcpy(&IV[0], &system_title[0], CSM_DEF_APP_TITLE_SIZE);
     PUT_BE32(&IV[CSM_DEF_APP_TITLE_SIZE], ic);
 
-    uint8_t *data = csm_array_rd_data(array); // point to the information
+    uint8_t *data = csm_array_rd_current(array); // point to the information
     uint32_t unread = csm_array_unread(array); // size of information
 
     // We have saved the security header (SC + IC), now  override this header (and beyond) with the AAD
@@ -188,7 +188,7 @@ csm_sec_result csm_sec_auth_encrypt(csm_array *array, csm_request *request, cons
     uint8_t tag[16U];
     csm_sys_gcm_finish(request->channel_id, tag);
 
-    csm_array_writer_jump(array, data_size); // Jump over crypted data
+    csm_array_writer_advance(array, data_size); // Jump over crypted data
 
     if ((tag_ptr != NULL) && (retcode == CSM_SEC_OK))
     {

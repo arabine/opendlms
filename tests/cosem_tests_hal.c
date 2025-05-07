@@ -94,22 +94,22 @@ uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id)
 int csm_sys_gcm_init(int8_t channel_id, uint8_t sap, csm_sec_key key_id, csm_sec_mode mode, const uint8_t *iv, const uint8_t *aad, uint32_t aad_len)
 {
     int mbed_mode = (mode == CSM_SEC_ENCRYPT) ? MBEDTLS_GCM_ENCRYPT : MBEDTLS_GCM_DECRYPT;
-    mbedtls_gcm_init(&chan_ctx[channel]);
-    mbedtls_gcm_setkey(&chan_ctx[channel], MBEDTLS_CIPHER_ID_AES, csm_sys_get_key(sap, key_id), 128);
-    int res = mbedtls_gcm_starts(&chan_ctx[channel], mbed_mode, iv, 12, aad, aad_len);
+    mbedtls_gcm_init(&chan_ctx[channel_id]);
+    mbedtls_gcm_setkey(&chan_ctx[channel_id], MBEDTLS_CIPHER_ID_AES, csm_sys_get_key(sap, key_id), 128);
+    int res = mbedtls_gcm_starts(&chan_ctx[channel_id], mbed_mode, iv, 12, aad, aad_len);
     return (res == 0) ? TRUE : FALSE;
 }
 
 int csm_sys_gcm_update(int8_t channel_id, const uint8_t *plain, uint32_t plain_len, uint8_t *crypt)
 {
-    mbedtls_gcm_update(&chan_ctx[channel], plain_len, plain, crypt);
+    mbedtls_gcm_update(&chan_ctx[channel_id], plain_len, plain, crypt);
     return TRUE;
 }
 
 // Sizes are total sizes of plain and AAD
 int csm_sys_gcm_finish(int8_t channel_id, uint8_t *tag)
 {
-    mbedtls_gcm_finish(&chan_ctx[channel], tag, 16);
+    mbedtls_gcm_finish(&chan_ctx[channel_id], tag, 16);
     return TRUE;
 }
 

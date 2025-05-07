@@ -123,7 +123,7 @@ int csm_axdr_decode_tags(csm_array *array, axdr_data_cb callback)
                     }
                 }
 
-                callback(tag, size, csm_array_rd_data(array));
+                callback(tag, size, csm_array_rd_current(array));
 
                 // jump over the data, if any
                 if ((!tags[i].is_struct) && size)
@@ -133,7 +133,7 @@ int csm_axdr_decode_tags(csm_array *array, axdr_data_cb callback)
                     {
                         size = BITFIELD_BYTES(size);
                     }
-                    csm_array_reader_jump(array, size);
+                    csm_array_reader_advance(array, size);
                 }
                 break; // enough
             }

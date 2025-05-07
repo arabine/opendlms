@@ -5,6 +5,7 @@
 // OS/System definitions
 #include "os_util.h"
 #include "server_config.h"
+#include "meter_definitions.h"
 
 // Ciphering library
 #include "gcm.h"
@@ -36,7 +37,7 @@ static uint8_t key_guek[16] = { 0x00U,0x01U,0x02U,0x03U,0x04U,0x05U,0x06U,0x07U,
 static uint8_t key_gak[16] = { 0xD0U,0xD1U,0xD2U,0xD3U,0xD4U,0xD5U,0xD6U,0xD7U,0xD8U,0xD9U,0xDAU,0xDBU,0xDCU,0xDDU,0xDEU,0xDFU };
 
 // Keep a context by channel to be thread safe
-mbedtls_gcm_context chan_ctx[NUMBER_OF_CHANNELS];
+mbedtls_gcm_context chan_ctx[METER_NUMBER_OF_ASSOCIATIONS];
 
 void csm_sys_set_system_title(const uint8_t *buf)
 {
@@ -99,22 +100,22 @@ uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id)
 int csm_sys_gcm_init(int8_t channel_id, uint8_t sap, csm_sec_key key_id, csm_sec_mode mode, const uint8_t *iv, const uint8_t *aad, uint32_t aad_len)
 {
     int mbed_mode = (mode == CSM_SEC_ENCRYPT) ? MBEDTLS_GCM_ENCRYPT : MBEDTLS_GCM_DECRYPT;
-    mbedtls_gcm_init(&chan_ctx[channel]);
-    mbedtls_gcm_setkey(&chan_ctx[channel], MBEDTLS_CIPHER_ID_AES, csm_sys_get_key(sap, key_id), 128);
-    int res = mbedtls_gcm_starts(&chan_ctx[channel], mbed_mode, iv, 12, aad, aad_len);
+    mbedtls_gcm_init(&chan_ctx[channel_id]);
+    mbedtls_gcm_setkey(&chan_ctx[channel_id], MBEDTLS_CIPHER_ID_AES, csm_sys_get_key(sap, key_id), 128);
+    int res = mbedtls_gcm_starts(&chan_ctx[channel_id], mbed_mode, iv, 12, aad, aad_len);
     return (res == 0) ? TRUE : FALSE;
 }
 
 int csm_sys_gcm_update(int8_t channel_id, const uint8_t *plain, uint32_t plain_len, uint8_t *crypt)
 {
-    mbedtls_gcm_update(&chan_ctx[channel], plain_len, plain, crypt);
+    mbedtls_gcm_update(&chan_ctx[channel_id], plain_len, plain, crypt);
     return TRUE;
 }
 
 // Sizes are total sizes of plain and AAD
 int csm_sys_gcm_finish(int8_t channel_id, uint8_t *tag)
 {
-    mbedtls_gcm_finish(&chan_ctx[channel], tag, 16);
+    mbedtls_gcm_finish(&chan_ctx[channel_id], tag, 16);
     return TRUE;
 }
 

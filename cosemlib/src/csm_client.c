@@ -335,9 +335,9 @@ int csm_client_encode_selective_access_by_range(csm_array *array, csm_object_t *
     valid = valid && csm_axdr_wr_capture_object(array, restricting_object);
 
     // 2. start date
-    valid = valid && csm_axdr_wr_octetstring(array, csm_array_rd_data(start), csm_array_written(start));
+    valid = valid && csm_axdr_wr_octetstring(array, csm_array_rd_current(start), csm_array_written(start));
     // 3. end date
-    valid = valid && csm_axdr_wr_octetstring(array, csm_array_rd_data(end), csm_array_written(end));
+    valid = valid && csm_axdr_wr_octetstring(array, csm_array_rd_current(end), csm_array_written(end));
 
     // 4. selected values
     valid = valid && csm_array_write_u8(array, 0x01U); // selected values

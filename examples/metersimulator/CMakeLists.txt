@@ -11,6 +11,7 @@ add_executable(${PROJECT_NAME}
 
     src/main.c
     src/cosem_server_hal.c
+    src/meter.c
 
     ../../common/ip/tcp_server.c
 

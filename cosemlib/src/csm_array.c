@@ -34,7 +34,7 @@ void csm_array_init(csm_array *array, uint8_t *buffer, uint32_t max_size, uint32
 void csm_array_reset(csm_array *array)
 {
     array->rd_index = 0U;
-    array->wr_index = array->size - array->offset;
+    array->wr_index = 0U;
 }
 
 int csm_array_get(const csm_array *array, uint32_t index, uint8_t *byte)
@@ -86,9 +86,9 @@ int csm_array_write_u16(csm_array *array, uint16_t value)
 
     if (csm_array_free_size(array) >= 2U)
     {
-        uint8_t *data = csm_array_wr_data(array);
+        uint8_t *data = csm_array_wr_current(array);
         PUT_BE16(data, value);
-        ret = csm_array_writer_jump(array, 2U);
+        ret = csm_array_writer_advance(array, 2U);
     }
     else
     {
@@ -103,9 +103,9 @@ int csm_array_write_u32(csm_array *array, uint32_t value)
 
     if (csm_array_free_size(array) >= 4U)
     {
-        uint8_t *data = csm_array_wr_data(array);
+        uint8_t *data = csm_array_wr_current(array);
         PUT_BE32(data, value);
-        ret = csm_array_writer_jump(array, 4U);
+        ret = csm_array_writer_advance(array, 4U);
     }
     else
     {
@@ -124,7 +124,7 @@ void csm_array_dump(csm_array *array)
     CSM_TRACE("\r\n");
 }
 
-int csm_array_writer_jump(csm_array *array, uint32_t nb_bytes)
+int csm_array_writer_advance(csm_array *array, uint32_t nb_bytes)
 {
     int ret = TRUE;
 
@@ -146,7 +146,7 @@ int csm_array_write_array(csm_array *array, const csm_array *src_array)
 
     if (csm_array_free_size(array) >= size)
     {
-        (void) memcpy(csm_array_wr_data(array), csm_array_rd_data(src_array), size);
+        (void) memcpy(csm_array_wr_current(array), csm_array_rd_current(src_array), size);
         array->wr_index += size;
         ret = TRUE;
     }
@@ -157,7 +157,7 @@ int csm_array_write_array(csm_array *array, const csm_array *src_array)
     return ret;
 }
 
-int csm_array_reader_jump(csm_array *array, uint32_t nb_bytes)
+int csm_array_reader_advance(csm_array *array, uint32_t nb_bytes)
 {
     int ret = TRUE;
 
@@ -178,8 +178,8 @@ int csm_array_read_buff(csm_array *array, uint8_t *to_buff, uint32_t size)
     CSM_ASSERT(array != NULL);
     CSM_ASSERT(to_buff != NULL);
 
-    (void) memcpy(to_buff, csm_array_rd_data(array), size);
-    return csm_array_reader_jump(array, size);
+    (void) memcpy(to_buff, csm_array_rd_current(array), size);
+    return csm_array_reader_advance(array, size);
 }
 
 int csm_array_write_buff(csm_array *array, const uint8_t *buff, uint32_t size)
@@ -189,7 +189,7 @@ int csm_array_write_buff(csm_array *array, const uint8_t *buff, uint32_t size)
 
     if ((WR_INDEX(array) + size) <= array->size)
     {
-        (void) memcpy(csm_array_wr_data(array), &buff[0], size);
+        (void) memcpy(csm_array_wr_current(array), &buff[0], size);
         array->wr_index += size;
         ret = TRUE;
     }
@@ -222,17 +222,22 @@ uint32_t csm_array_data_size(const csm_array *array)
 
 uint32_t csm_array_written(const csm_array *array)
 {
-    return (WR_INDEX(array));
+    return array->wr_index;
 }
 
-uint8_t *csm_array_rd_data(const csm_array *array)
+uint8_t *csm_array_rd_current(const csm_array *array)
 {
     return (array->buff + RD_INDEX(array));
 }
 
-uint8_t *csm_array_wr_data(csm_array *array)
+uint8_t *csm_array_wr_current(csm_array *array)
 {
     return (array->buff + WR_INDEX(array));
+}
+
+uint8_t *csm_array_start(csm_array *array)
+{
+    return (array->buff + array->offset);
 }
 
 int csm_array_read_u8(csm_array *array, uint8_t *byte)
@@ -256,9 +261,9 @@ int csm_array_read_u32(csm_array *array, uint32_t *value)
     int ret = FALSE;
     if (csm_array_unread(array) >= 4U)
     {
-        uint8_t *start = csm_array_rd_data(array);
+        uint8_t *start = csm_array_rd_current(array);
         *value = GET_BE32(start);
-        ret = csm_array_reader_jump(array, 4U);
+        ret = csm_array_reader_advance(array, 4U);
     }
     return ret;
 }
@@ -268,9 +273,9 @@ int csm_array_read_u16(csm_array *array, uint16_t *value)
     int ret = FALSE;
     if (csm_array_unread(array) >= 2U)
     {
-        uint8_t *start = csm_array_rd_data(array);
+        uint8_t *start = csm_array_rd_current(array);
         *value = GET_BE16(start);
-        ret = csm_array_reader_jump(array, 2U);
+        ret = csm_array_reader_advance(array, 2U);
     }
     return ret;
 }

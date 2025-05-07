@@ -1,6 +1,6 @@
 #include "db_cosem_associations.h"
 #include "csm_axdr_codec.h"
-#include "meter_definitions.h"
+#include "db_definitions.h"
 
 typedef struct 
 {
@@ -8,36 +8,41 @@ typedef struct
     uint32_t nb_elements;
     uint32_t object_idx;
     uint32_t nb_objects;
-} asso_context_t;
+} asso_db_context_t;
 
-static  asso_context_t asso_ctx[METER_NUMBER_OF_ASSOCIATIONS];
+static  asso_db_context_t g_asso_db_contexes[DB_NUMBER_OF_ASSOCIATIONS] = {0};
 
 csm_db_code db_cosem_associations_func(csm_server_context_t *ctx, csm_array *in, csm_array *out)
 {
     csm_db_code code = CSM_ERR_OBJECT_ERROR;
 
-    asso_context_t *asso_ctx = &asso_ctx[ctx->asso->channel_id];
+    if ((ctx->asso.channel_id < 0) || (ctx->asso.channel_id >= DB_NUMBER_OF_ASSOCIATIONS))
+    {
+        CSM_ERR("[DB] Channel ID invalid");
+        return CSM_ERR_TEMPORARY_FAILURE;
+    }
+    
+    asso_db_context_t *asso_ctx = &g_asso_db_contexes[ctx->asso.channel_id];
 
-    if (ctx->asso->request.db_request.service == SVC_GET)
+    if (ctx->request.db_request.service == SVC_GET)
     {
         // object_list
-        if (ctx->asso->request.db_request.logical_name.id == 2)
+        if (ctx->request.db_request.logical_name.id == 2)
         {
             // Always reply by block
             code = CSM_OK_BLOCK;
 
-            if (ctx->asso->state == CSM_RESPONSE_STATE_SENDING)
+            if (ctx->asso.state == CSM_RESPONSE_STATE_SENDING)
             {
                 return code;
             }
 
-
             int valid = TRUE;
 
-            if (ctx->asso->state == CSM_RESPONSE_STATE_START)
+            if (ctx->asso.state == CSM_RESPONSE_STATE_START)
             {
                 // Initialize counters
-                ctx->asso->current_loop = 1;
+                ctx->asso.current_loop = 1;
 
                 asso_ctx->element_idx = 0;
                 asso_ctx->object_idx = 0;
@@ -45,14 +50,14 @@ csm_db_code db_cosem_associations_func(csm_server_context_t *ctx, csm_array *in,
                 asso_ctx->nb_objects = ctx->db->el[0].nb_objects;
 
                 // Compute the numer of objects
-                ctx->asso->nb_loops = 0;
+                ctx->asso.nb_loops = 0;
                 for (uint32_t i = 0; i < ctx->db->size; i++)
                 {
                     const struct db_element *e = &ctx->db->el[i];
-                    ctx->asso->nb_loops += e->nb_objects;
+                    ctx->asso.nb_loops += e->nb_objects;
                 }
                 valid = valid && csm_array_write_u8(out, AXDR_TAG_ARRAY);
-                valid = valid && csm_ber_write_len(out, ctx->asso->nb_loops);
+                valid = valid && csm_ber_write_len(out, ctx->asso.nb_loops);
 
                 // Continue with the first object
             }
@@ -66,7 +71,7 @@ csm_db_code db_cosem_associations_func(csm_server_context_t *ctx, csm_array *in,
             
             valid = valid && csm_axdr_wr_u16(out, obj->class_id);
             valid = valid && csm_axdr_wr_u8(out, obj->version);
-            valid = valid && csm_axdr_wr_octetstring(out, &ctx->asso->request.db_request.logical_name.obis.A, 6U);
+            valid = valid && csm_axdr_wr_octetstring(out, &ctx->request.db_request.logical_name.obis.A, 6U);
             
             valid = valid && csm_array_write_u8(out, AXDR_TAG_STRUCTURE);
             valid = valid && csm_ber_write_len(out, 2);
@@ -111,11 +116,11 @@ csm_db_code db_cosem_associations_func(csm_server_context_t *ctx, csm_array *in,
                 asso_ctx->object_idx = 0;
             }
 
-            ctx->asso->current_loop++;
+            ctx->asso.current_loop++;
 
         }
     }
-    else if (ctx->asso->request.db_request.service == SVC_SET)
+    else if (ctx->request.db_request.service == SVC_SET)
     {
         // Not implemented
     }
@@ -126,8 +131,8 @@ csm_db_code db_cosem_associations_func(csm_server_context_t *ctx, csm_array *in,
         if (csm_axdr_rd_octetstring(in, &size))
         {
             CSM_LOG("[DB] Reply to HLS authentication");
-            int ret = csm_asso_hls_pass3(ctx->asso, in);
-            ret = ret && csm_asso_hls_pass4(ctx->asso, out);
+            int ret = csm_asso_hls_pass3(&ctx->asso, &ctx->request, in);
+            ret = ret && csm_asso_hls_pass4(&ctx->asso, &ctx->request, out);
 
             if (ret)
             {

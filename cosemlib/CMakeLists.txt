@@ -20,6 +20,7 @@ PRIVATE
     src/csm_security.c
     src/csm_server.c
     src/csm_client.c
+    src/csm_llc.c
 
     # HDLC
     hdlc/hdlc.c

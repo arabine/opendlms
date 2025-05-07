@@ -54,6 +54,9 @@ typedef struct
    
 } peer;
 
+/* an array for all clients */
+static peer peers[MAX_CLIENTS];
+
 static void init(void)
 {
 #ifdef WIN32
@@ -144,19 +147,45 @@ static void write_peer(SOCKET sock, const char *buffer, size_t size)
    }
 }
 
-static void app(data_handler data_func, connection_handler conn_func, disconnection_handler discon_func, int tcp_port)
+static int read_peer(SOCKET sock, char *buffer, int max_size)
+{
+   int n = 0;
+
+   if((n = recv(sock, buffer, max_size, 0)) < 0)
+   {
+      perror("recv()");
+      /* if recv error we disconnect the client */
+      n = 0;
+   }
+   return n;
+}
+
+void tcp_server_send(int8_t channel_id, const char *buffer, size_t size)
+{
+   // look for peer by channel id
+   for (int i = 0; i < MAX_CLIENTS; i++)
+   {
+       if (peers[i].connected && peers[i].channel_id == channel_id)
+       {
+           write_peer(peers[i].sock, buffer, size);
+           break;
+       }
+   }
+}
+
+static void app(data_handler data_func, connection_handler connection_func, disconnection_handler disconnection_func, int tcp_port)
 {
    SOCKET sock = init_connection(tcp_port);
 
 
    unsigned int max = sock;
-   /* an array for all clients */
-   peer peers[MAX_CLIENTS];
 
    // Init properly
    for (int i = 0; i < MAX_CLIENTS; i++)
    {
-       peers[i].connected = false;
+      peers[i].connected = false;
+      peers[i].channel_id = -1;
+      peers[i].sock = INVALID_SOCKET;
    }
 
    fd_set working_set;
@@ -169,8 +198,8 @@ static void app(data_handler data_func, connection_handler conn_func, disconnect
 
    printf("[TCP Server] TCP Server started on TCP port: %d\r\n", tcp_port);
 
-    while(1)
-    {
+   while(1)
+   {
         // update max
         max = sock;
         for (int i = 0; i < MAX_CLIENTS; i++)
@@ -204,12 +233,9 @@ static void app(data_handler data_func, connection_handler conn_func, disconnect
                 continue;
             }
 
-            // Grand access to the application layer
-            peer c = {
-                  .sock = csock,
-                  .connected = true,
-                  .channel_id = -1,
-             };
+            printf("[TCP] Accept socket %d\r\n", csock);
+
+            // Grant access to the application layer
             int8_t channel_id = connection_func();
             if (channel_id >= 0)
             {
@@ -242,7 +268,7 @@ static void app(data_handler data_func, connection_handler conn_func, disconnect
                 /* a client is talking */
                 if(FD_ISSET(peers[i].sock, &working_set))
                 {
-                   int size = read_peer(peers[i].sock, &peers[i].rx);
+                   int size = read_peer(peers[i].sock, &peers[i].buffer[0], sizeof(peers[i].buffer));
                    /* client disconnected */
                    if(size == 0)
                    {
@@ -255,25 +281,27 @@ static void app(data_handler data_func, connection_handler conn_func, disconnect
                      // Make sure structure elements are cleared
                      peers[i].sock = INVALID_SOCKET;
                      peers[i].connected = false;
+                     peers[i].channel_id = -1;
                    }
                    else
                    {
                        puts("[TCP server] New data received!");
                        if (data_func != NULL)
                        {
-                           int ret = data_func(peers[i].channel_id, &peers[i].buffer[0], size);
+                           int ret = data_func(peers[i].channel_id, &peers[i].buffer[0], size, sizeof(peers[i].buffer));
                            if (ret > 0)
                            {
-                                 write_peer(peers[i].sock, &peers[i].buffer[0], ret);
+                              printf("[TCP] Send to seocket %d\r\n", peers[i].sock);
+                              write_peer(peers[i].sock, &peers[i].buffer[0], ret);
                            }
                        }
 
                        //broadcast(peers, client, actual, buffer, 0);
                    }
-                }
+                } 
             }
         }
-    }
+   }
 
    // Clear peers
    for(int i = 0; i < MAX_CLIENTS; i++)

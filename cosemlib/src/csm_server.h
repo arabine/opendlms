@@ -29,7 +29,7 @@ struct csm_server_context_t
     csm_db_access_handler db_access_func; // function to access the database
 
     csm_request request;   //!< Current request
-    csm_asso_state *asso;   //!< Current association 
+    csm_asso_state asso;   //!< Current association 
 };
 
 struct db_element
@@ -39,12 +39,12 @@ struct db_element
     uint32_t nb_objects;
 };
  
-void csm_server_init(csm_server_context_t *cosem_ctx);
-int csm_server_execute(csm_server_context_t *cosem_ctx, csm_request *request, csm_array *packet);
 
-// Connect to a channel
-int8_t csm_server_connect(csm_server_context_t *cosem_ctx);
-void csm_server_disconnect(csm_server_context_t *cosem_ctx, int8_t channel_id);
+int csm_server_execute( csm_server_context_t *cosem_ctx, 
+                        const csm_asso_config *configs, uint32_t number_of_associations,
+                        csm_db_t *db, uint32_t number_of_logical_devices
+                        );
+
 
 #ifdef __cplusplus
 }
