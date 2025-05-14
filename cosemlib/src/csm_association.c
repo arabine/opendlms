@@ -57,24 +57,28 @@ typedef struct
 
 // -------------------------------   DECODERS   ------------------------------------------
 
-static csm_acse_code acse_proto_version_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+static csm_acse_code acse_proto_version_decoder(csm_asso_state *asso, csm_ber *ber, csm_array *array)
 {
     csm_acse_code ret = CSM_ACSE_ERR;
-    (void) state;
 
     CSM_LOG("[ACSE] Found Protocol version tag");
 
     // we support only version1 of the protocol
     if (ber->length.length == 2U)
     {
-        uint8_t version, unused_bytes;
-        if (csm_array_read_u8(array, &unused_bytes))
+        uint8_t version, unused_bits;
+        if (csm_array_read_u8(array, &unused_bits))
         {
             if (csm_array_read_u8(array, &version))
             {
-                if ((unused_bytes == 7U) && (version == 0x80U))
+                // if ((unused_bits == 7U) && (version == 0x80U))
+                if ((version&0x80) == 0x80U)
                 {
                     ret = CSM_ACSE_OK;
+                }
+                else
+                {
+                    asso->handshake.failure_type = CSM_ASSO_FAIL_BAD_PROTOCOL_VERSION;
                 }
             }
         }
@@ -512,7 +516,7 @@ static csm_acse_code acse_result_src_diag_decoder(csm_asso_state *state, csm_ber
     CSM_LOG("[ACSE] Decoding result source diagnostic tag ...");
 
     int valid = csm_ber_decode(ber, array);
-    if (valid && (ber->length.length == 3U) && (ber->tag.tag == CSM_ASSO_RESULT_SERVICE_USER))
+    if (valid && (ber->length.length == 3U) && (ber->tag.tag == CSM_ASSO_SERVICE_USER))
     {
         uint8_t result;
         if (csm_ber_read_u8(array, &result))
@@ -595,7 +599,7 @@ static const csm_asso_dec aare_decoder_chain[] =
     {CSM_ASSO_APP_CONTEXT_NAME,         ACSE_ALWAYS,    acse_app_context_decoder},
     {CSM_BER_TYPE_OBJECT_IDENTIFIER,    ACSE_ALWAYS,    acse_oid_decoder},
     {CSM_ASSO_RESULT_FIELD,             ACSE_ALWAYS,    acse_result_decoder},
-    {CSM_ASSO_RESULT_SRC_DIAG,          ACSE_ALWAYS,    acse_result_src_diag_decoder},
+    {CSM_ASSO_SOURCE_DIAGNOSTIC,          ACSE_ALWAYS,    acse_result_src_diag_decoder},
 
     // Additional fields specific when ciphered authentication is required
     {CSM_ASSO_RESP_AP_TITLE,            ACSE_SEC,       acse_server_system_title_decoder},
@@ -642,14 +646,14 @@ static int acse_oid_encoder(csm_array *array, uint8_t name, uint8_t id)
 }
 
 
-static csm_acse_code acse_oid_context_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+static csm_acse_code acse_oid_context_encoder(csm_asso_state *asso, csm_ber *ber, csm_array *array)
 {
     csm_acse_code ret = CSM_ACSE_ERR;
     (void) ber;
 
     CSM_LOG("[ACSE] Encoding Object Identifier tag ...");
 
-    if (acse_oid_encoder(array, (uint8_t)APP_CONTEXT_NAME, (uint8_t)state->ref))
+    if (acse_oid_encoder(array, APP_CONTEXT_NAME, (uint8_t)asso->ref))
     {
         ret = CSM_ACSE_OK;
     }
@@ -664,7 +668,7 @@ Association-result ::=                 INTEGER
     rejected-transient                 (2)
 }
 */
-static csm_acse_code acse_result_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+static csm_acse_code acse_result_encoder(csm_asso_state *asso, csm_ber *ber, csm_array *array)
 {
     csm_acse_code ret = CSM_ACSE_ERR;
     (void) ber;
@@ -672,7 +676,7 @@ static csm_acse_code acse_result_encoder(csm_asso_state *state, csm_ber *ber, cs
     CSM_LOG("[ACSE] Encoding result tag ...");
 
     uint8_t result = 0U; // accepted
-    if (state->state_cf == CF_IDLE)
+    if ((asso->state_cf == CF_IDLE) || (asso->handshake.failure_type != CSM_ASSO_FAIL_NO_ANY))
     {
         result = 1U; // rejected-permanent
     }
@@ -687,21 +691,34 @@ static csm_acse_code acse_result_encoder(csm_asso_state *state, csm_ber *ber, cs
     return ret;
 }
 
-
-static csm_acse_code acse_result_src_diag_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+static csm_acse_code acse_result_src_diag_encoder(csm_asso_state *asso, csm_ber *ber, csm_array *array)
 {
     csm_acse_code ret = CSM_ACSE_ERR;
     (void) ber;
 
     CSM_LOG("[ACSE] Encoding result source diagnostic tag ...");
 
+
+    uint8_t acse_service_type = CSM_ASSO_SERVICE_USER;
+    uint8_t source_diagnostic = CSM_ASSO_ERR_NULL;
+    switch (asso->handshake.failure_type)
+    {
+        case CSM_ASSO_FAIL_BAD_PROTOCOL_VERSION:
+            acse_service_type = CSM_ASSO_SERVICE_PROVIDER;
+            source_diagnostic = CSM_ASSO_SERVICE_PROVIDER_NO_COMMON_VERSION;
+            break;
+        default:
+            acse_service_type = CSM_ASSO_SERVICE_USER;
+            source_diagnostic = CSM_ASSO_ERR_NULL;
+    }
+
     if (csm_ber_write_len(array, 5U))
     {
-        if (csm_array_write_u8(array, (uint8_t)CSM_ASSO_RESULT_SERVICE_USER))
+        if (csm_array_write_u8(array, acse_service_type))
         {
             if (csm_ber_write_len(array, 3U)) // 3 bytes = integer tag, integer length and result boolean
             {
-                if (csm_ber_write_u8(array, state->handshake.result))
+                if (csm_ber_write_u8(array, source_diagnostic))
                 {
                     ret = CSM_ACSE_OK;
                 }
@@ -961,7 +978,7 @@ static const csm_asso_enc aare_encoder_chain[] =
     {CSM_ASSO_APP_CONTEXT_NAME,         ACSE_ALWAYS,    acse_app_context_encoder},
     {CSM_BER_TYPE_OBJECT_IDENTIFIER,    ACSE_ALWAYS,    acse_oid_context_encoder},
     {CSM_ASSO_RESULT_FIELD,             ACSE_ALWAYS,    acse_result_encoder},
-    {CSM_ASSO_RESULT_SRC_DIAG,          ACSE_ALWAYS,    acse_result_src_diag_encoder},
+    {CSM_ASSO_SOURCE_DIAGNOSTIC,        ACSE_ALWAYS,    acse_result_src_diag_encoder},
 
     // Additional fields specific when ciphered authentication is required
     {CSM_ASSO_RESP_AP_TITLE,            ACSE_SEC,       acse_resp_system_title_encoder},
@@ -1070,12 +1087,13 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array, uint8_t tag)
     }
     else
     {
+        state->handshake.failure_type = CSM_ASSO_FAIL_NO_ANY;
         const csm_asso_dec *codec = &aare_decoder_chain[0];
         uint32_t size = CSM_ACSE_AARE_DECODER_CHAIN_SIZE;
 
         if (tag == CSM_ASSO_AARQ)
         {
-            CSM_ERR("[ACSE] AARQ");
+            CSM_LOG("[ACSE] AARQ");
             codec = &aarq_decoder_chain[0];
             size = CSM_ACSE_AARQ_DECODER_CHAIN_SIZE;
         }
@@ -1096,19 +1114,20 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array, uint8_t tag)
             {
                 if (ber.tag.tag == codec[decoder_index].tag)
                 {
-                    ret = FALSE;
                     eat_bytes = TRUE;
                     if ((codec[decoder_index].extract_func != NULL))
                     {
                         csm_acse_code acse_ret = codec[decoder_index].extract_func(state, &ber, array);
                         if (acse_ret != CSM_ACSE_OK)
                         {
-                            CSM_ERR("Extract field error!");
+                            CSM_ERR("[ACSE] Decoding field error!");
                         }
-                        else
-                        {
-                            ret = TRUE;
-                        }
+                        // If it is a ACSE error (not a BER deconding)
+                        // we do not threat it as a fatal error, error code and cause must be sent in AARE reply
+                    }
+                    else
+                    {
+                        CSM_ERR("[ACSE] No extract function for this tag");
                     }
                 }
                 else
@@ -1208,8 +1227,12 @@ int csm_asso_server_execute(csm_asso_state *asso)
 
     if (asso->state_cf  == CF_IDLE)
     {
-        if (csm_asso_decoder(asso, &asso->rx, CSM_ASSO_AARQ))
+        int ret = csm_asso_decoder(asso, &asso->rx, CSM_ASSO_AARQ);
+
+        // Either we have a decoder error, or protocol field contents problems
+        if ((ret == CSM_ACSE_OK) && (asso->handshake.failure_type == CSM_ASSO_FAIL_NO_ANY))
         {
+            // We test the association state only if the whole decioding is OK
             if (csm_asso_is_granted(asso))
             {
                 CSM_LOG("[ACSE] Access granted!");
@@ -1219,18 +1242,18 @@ int csm_asso_server_execute(csm_asso_state *asso)
                 // FIXME: print textual reason
                 CSM_ERR("[ACSE] Connection rejected, reason: %d", asso->handshake.result);
             }
-
-            // Send AARE, success or failure
-            if (csm_asso_encoder(asso, CSM_ASSO_AARE))
-            {
-                bytes_to_reply = csm_array_written(&asso->tx);
-                CSM_LOG("[ACSE] AARE length: %d", bytes_to_reply);
-             //   csm_array_dump(packet);
-            }
         }
         else
         {
-            CSM_ERR("[ACSE] BER decoding error");
+            CSM_ERR("[ACSE] AARQ Decoding error");
+        }
+
+        // Send AARE, success or failure
+        if (csm_asso_encoder(asso, CSM_ASSO_AARE))
+        {
+            bytes_to_reply = csm_array_written(&asso->tx);
+            CSM_LOG("[ACSE] AARE length: %d", bytes_to_reply);
+            //   csm_array_dump(packet);
         }
     }
     else if (asso->state_cf  == CF_ASSOCIATED)

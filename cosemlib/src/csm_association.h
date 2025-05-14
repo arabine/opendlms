@@ -105,44 +105,78 @@ typedef enum
     CSM_ASSO_RESPONDER_ACSE_REQ     = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE   +  8U,
     CSM_ASSO_RESP_AP_TITLE          = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  4U,
     CSM_ASSO_RESULT_FIELD           = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  2U,
-    CSM_ASSO_RESULT_SRC_DIAG        = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  3U,
-    CSM_ASSO_RESULT_SERVICE_USER    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  1U,
+    CSM_ASSO_SOURCE_DIAGNOSTIC      = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  3U,
+    CSM_ASSO_SERVICE_USER           = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  1U,
+    CSM_ASSO_SERVICE_PROVIDER       = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  2U,
 } csm_asso_tag;
 
 #ifdef __cplusplus
 #pragma GCC diagnostic pop
 #endif
 
+
 /*
 
-    acse-service-user                  [1] INTEGER
-    {
-        null                                             (0),
-        no-reason-given                                  (1),
-        application-context-name-not-supported           (2),
-        calling-AP-title-not-recognized                  (3),
-        calling-AP-invocation-identifier-not-recognized  (4),
-        calling-AE-qualifier-not-recognized              (5),
-        calling-AE-invocation-identifier-not-recognized  (6),
-        called-AP-title-not-recognized                   (7),
-        called-AP-invocation-identifier-not-recognized   (8),
-        called-AE-qualifier-not-recognized               (9),
-        called-AE-invocation-identifier-not-recognized   (10),
-        authentication-mechanism-name-not-recognized     (11),
-        authentication-mechanism-name-required           (12),
-        authentication-failure                           (13),
-        authentication-required                          (14)
-    }
+GreenBook 7th paragraph 9.3.2
 
- */
+
+    result-source-diagnostic  [3]  Associate-source-diagnostic
+
+    Associate-source-diagnostic ::= CHOICE
+    {
+        acse-service-user [1] INTEGER
+        {
+            null                                                (0)
+            no-reason-given                                     (1)
+            application-context-name-not-supported              (2)
+            calling-AP-title-not-recognized                     (3),
+            calling-AP-invocation-identifier-not-recognized     (4),
+            calling-AE-qualifier-not-recognized                 (5),
+            calling-AE-invocation-identifier-not-recognized     (6),
+            called-AP-title-not-recognized                      (7),
+            called-AP-invocation-identifier-not-recognized      (8),
+            called-AE-qualifier-not-recognized                  (9),
+            called-AE-invocation-identifier-not-recognized      (10),
+            authentication-mechanism-name-not-recognised  (11)
+            authentication-mechanism-name-required        (12)
+            authentication-failure                        (13)
+            authentication-required                       (14)
+        }
+
+        acse-service-provider [2] INTEGER
+        {
+            null                    (0)
+            no-reason-given         (1)
+            no-common-acse-version  (2)
+        }
+    }
+*/
 enum csm_asso_result
 {
     CSM_ASSO_ERR_NULL                           = 0U,   //!< No error
     CSM_ASSO_NO_REASON_GIVEN                    = 1U,
+    CSM_ASSO_APP_CONTEXT_NAME_NOT_SUPPORTED     = 2U,
+    // FIXME: add other codes
+
     CSM_ASSO_AUTH_NOT_RECOGNIZED                = 11U,
     CSM_ASSO_AUTH_MECANISM_NAME_REQUIRED        = 12U,
     CSM_ASSO_ERR_AUTH_FAILURE                   = 13U,
     CSM_ASSO_AUTH_REQUIRED                      = 14U,
+};
+
+enum acse_service_provider
+{
+    CSM_ASSO_SERVICE_PROVIDER_NULL              = 0U,
+    CSM_ASSO_SERVICE_PROVIDER_NO_REASON_GIVEN   = 1U,
+    CSM_ASSO_SERVICE_PROVIDER_NO_COMMON_VERSION = 2U,
+};
+
+
+enum csm_asso_failure_type
+{
+    CSM_ASSO_FAIL_NO_ANY                    = 0U,
+    CSM_ASSO_FAIL_UNKNOWN                   = 1U,
+    CSM_ASSO_FAIL_BAD_PROTOCOL_VERSION      = 2U,
 };
 
 typedef enum 
@@ -181,8 +215,9 @@ typedef struct
     uint32_t proposed_conformance;
     uint16_t client_max_receive_pdu_size;
     uint16_t server_max_receive_pdu_size;
-    uint8_t accepted;
+    uint8_t accepted; /// set to true by the server on successfull handshake (password)
     enum csm_asso_result result;
+    enum csm_asso_failure_type failure_type; ///<! This field is dedicated to the decoding parts of the ACSE (fields, not BER)
 } csm_asso_handshake;
 
 /**
