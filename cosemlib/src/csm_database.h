@@ -38,9 +38,14 @@ typedef enum
 } csm_db_code;
 
 // Attributes access rights
+#define DB_ACCESS_NOTHING   (uint16_t)0U
 #define DB_ACCESS_GET       (uint16_t)1U
 #define DB_ACCESS_SET       (uint16_t)2U
 #define DB_ACCESS_GETSET    (uint16_t)3U
+
+// Methods access rights
+#define DB_ACCESS_EXECUTE   (uint16_t)1U
+#define DB_ACCESS_AUTH_EXECUTE    (uint16_t)2U
 
 typedef enum
 {
@@ -73,7 +78,6 @@ typedef struct
 {
      uint16_t  access_rights;   //!< Give the access right coding number
      int8_t    number;          //!<
-     uint8_t   type;            //!< Gives the type of the attribute, for deserialization purpose
 } db_attr_descr;
 
 /**

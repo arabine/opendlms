@@ -60,7 +60,6 @@ static int csm_db_check_attribute(csm_db_request *db_request, const db_object_de
             if ((attr->number == db_request->logical_name.id) && (access_rights & attr->access_rights) == access_rights)
             {
                 // Save the type for application usage
-                db_request->db_type = attr->type;
                 ret = TRUE;
                 break;
             }

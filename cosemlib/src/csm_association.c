@@ -1141,17 +1141,17 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array, uint8_t tag)
     return ret;
 }
 
-int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag)
+int csm_asso_encoder(csm_asso_state *asso, uint8_t tag)
 {
-    array->wr_index = 0U; // Reinit write pointer
+    csm_array *out = &asso->tx;
     int ret = FALSE;
     csm_ber ber;
 
-    if (csm_array_write_u8(array, tag))
+    if (csm_array_write_u8(out, tag))
     {
         // Write dummy size, it will be updated later
         // Since the AARE is never bigger than 127, the length encoding can one-byte size
-        if (csm_array_write_u8(array, 0U))
+        if (csm_array_write_u8(out, 0U))
         {
             const csm_asso_enc *codec = &aare_encoder_chain[0];
             uint32_t size = CSM_ACSE_AARE_ENCODER_CHAIN_SIZE;
@@ -1168,16 +1168,16 @@ int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag)
                 if ((codec[i].insert_func != NULL) && (codec[i].context != ACSE_SKIP))
                 {
                     // Don't encode some fields when no security is required
-                    if ((state->auth_level <= CSM_AUTH_LOW_LEVEL) && (codec[i].context == ACSE_SEC))
+                    if ((asso->auth_level <= CSM_AUTH_LOW_LEVEL) && (codec[i].context == ACSE_SEC))
                     {
                         continue;
                     }
                     else
                     {
                         // Insert codec tag identifier
-                        if (csm_array_write_u8(array, codec[i].tag))
+                        if (csm_array_write_u8(out, codec[i].tag))
                         {
-                            if (!codec[i].insert_func(state, &ber, array))
+                            if (!codec[i].insert_func(asso, &ber, out))
                             {
                                 // Exit on error
                                 break;
@@ -1191,7 +1191,7 @@ int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag)
             {
                 ret = TRUE;
                 // Update the size
-                csm_array_set(array, 1U, array->wr_index - 2U); // skip the BER header (tag+length = 2 bytes)
+                csm_array_set(out, 1U, out->wr_index - 2U); // skip the BER header (tag+length = 2 bytes)
             }
             else
             {
@@ -1221,7 +1221,7 @@ int csm_asso_server_execute(csm_asso_state *asso)
             }
 
             // Send AARE, success or failure
-            if (csm_asso_encoder(asso, &asso->tx, CSM_ASSO_AARE))
+            if (csm_asso_encoder(asso, CSM_ASSO_AARE))
             {
                 bytes_to_reply = csm_array_written(&asso->tx);
                 CSM_LOG("[ACSE] AARE length: %d", bytes_to_reply);

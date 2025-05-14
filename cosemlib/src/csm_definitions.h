@@ -154,7 +154,7 @@ typedef struct
     csm_opt_data additional_data;
     csm_opt_data sel_access;
     csm_object_t logical_name;
-    uint8_t db_type; //!< Database specific, base type of the data
+    uint8_t next;
 } csm_db_request;
 
 typedef struct
@@ -228,9 +228,9 @@ get-response-with-list          [3] IMPLICIT Get-Response-With-List
 
 typedef enum 
 {
-    SVC_GET_RESPONSE_NORMAL = 0,
-    SVC_GET_RESPONSE_WITH_DATABLOCK = 1,
-    SVC_GET_RESPONSE_WITH_LIST = 2
+    SVC_GET_RESPONSE_NORMAL = 1,
+    SVC_GET_RESPONSE_WITH_DATABLOCK = 2,
+    SVC_GET_RESPONSE_WITH_LIST = 3
 } svc_response_type;
 
 

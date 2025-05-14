@@ -21,7 +21,7 @@ csm_db_code db_cosem_clock_func(csm_server_context_t *ctx, csm_array *in, csm_ar
 
     if (ctx->request.db_request.service == SVC_GET)
     {
-        if (csm_axdr_wr_octetstring(out, &date_time[0], 12U))
+        if (csm_axdr_wr_octetstring(out, &date_time[0], 12U, AXDR_TAG_OCTETSTRING))
         {
             code = CSM_OK;
         }

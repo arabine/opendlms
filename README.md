@@ -25,7 +25,6 @@ This Cosem stack has the following goals :
   * Association coders and decoders AARQ/AARE/RLRQ/RLRE (LLS)
   * Secure HLS5 GMAC Authentication
   * Get Request normal/by block
-  * Set request normal
   * Action service
   * Exception response in case of problem
   * HDLC framing utility
@@ -34,6 +33,11 @@ This Cosem stack has the following goals :
   * Client reader over HDLC with full logging and XML output
   * Server example as a meter simulator
   * Scripting GUI tool prototype
+
+## What need to fix or validate
+
+  * Set request by block
+  * Client is currently broken due to shared source code changes
 
 ## Directory organization
 

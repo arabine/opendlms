@@ -42,7 +42,7 @@ void AARQEncoder()
 
     csm_array_init(&array, &packet[0], packet_size, 0U, 0U);
 
-    int ret = csm_asso_encoder(&state, &array, CSM_ASSO_AARQ);
+    int ret = csm_asso_encoder(&state, CSM_ASSO_AARQ);
 
     REQUIRE(ret == TRUE);
 

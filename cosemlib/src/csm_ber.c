@@ -81,7 +81,7 @@ static int csm_ber_read_tag(csm_array *i_array, ber_tag *o_tag)
     return ret;
 }
 
-int csm_ber_write_len(csm_array *array, uint16_t len)
+int csm_ber_write_len(csm_array *array, uint32_t len)
 {
     uint8_t byte;
     uint8_t nbBytes = 1U;
@@ -89,17 +89,25 @@ int csm_ber_write_len(csm_array *array, uint16_t len)
 
     if (len > 127U)
     {
-        nbBytes++;
-        byte = (LEN_XTND | nbBytes);
-        ret = csm_array_write_u8(array, byte);
+        uint8_t len_bytes[4];
+        int num_bytes = 0;
+        uint32_t temp_size = len;
+        while (temp_size > 0) {
+            len_bytes[num_bytes++] = temp_size & 0xFF;
+            temp_size >>= 8;
+        }
+        if (num_bytes > 4) return FALSE; // Longueur maximale dépassée pour cet exemple
 
-        // Encode length first part
-        byte = ((len >> 8U) & LEN_MASK) | LEN_XTND;
-        ret = ret && csm_array_write_u8(array, byte);
+        ret = csm_array_write_u8(array, LEN_XTND | num_bytes); // Indicateur de longueur multiple octets
+        for (int i = num_bytes - 1; i >= 0; --i) { // Big-endian
+            ret = ret && csm_array_write_u8(array, len_bytes[i]);
+        }
     }
-
-    byte = len & LEN_MASK;
-    ret = ret && csm_array_write_u8(array, byte);
+    else
+    {
+        // < 127, only encode the length
+        ret = ret && csm_array_write_u8(array, len);
+    }
 
     return ret;
 }

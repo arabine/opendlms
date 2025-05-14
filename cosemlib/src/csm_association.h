@@ -236,7 +236,7 @@ typedef struct
 
 void csm_asso_init(csm_asso_state *state);
 int csm_asso_server_execute(csm_asso_state *asso);
-int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag);
+int csm_asso_encoder(csm_asso_state *asso, uint8_t tag);
 int csm_asso_decoder(csm_asso_state *state, csm_array *array, uint8_t tag);
 
 int csm_asso_hls_pass3(csm_asso_state *asso, csm_request *request, csm_array *array);

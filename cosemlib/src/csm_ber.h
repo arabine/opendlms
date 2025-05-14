@@ -132,7 +132,7 @@ int csm_ber_decode_object_identifier(ber_object_identifier *oid, csm_array *arra
 int csm_ber_decode(csm_ber *ber, csm_array *array);
 
 int csm_ber_read_len(csm_array *array, ber_length *o_len);
-int csm_ber_write_len(csm_array *array, uint16_t len);
+int csm_ber_write_len(csm_array *array, uint32_t len);
 
 int csm_ber_write_u8(csm_array *array, uint8_t value);
 int csm_ber_read_u8(csm_array *array, uint8_t *value);

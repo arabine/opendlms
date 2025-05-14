@@ -90,8 +90,10 @@ int csm_axdr_rd_octetstring(csm_array *array, uint32_t *size);
 int csm_axdr_decode_tags(csm_array *array, axdr_data_cb callback);
 int csm_axdr_decode_block(csm_array *array, uint32_t *size);
 
-// Encoders
-int csm_axdr_wr_octetstring(csm_array *array, const uint8_t *buffer, uint32_t size);
+// ----------------- Encoders
+
+// Use standard AXDR tag or implicit one
+int csm_axdr_wr_octetstring(csm_array *array, const uint8_t *buffer, uint32_t size, uint8_t tag);
 int csm_axdr_wr_i8(csm_array *array, int8_t value);
 int csm_axdr_wr_u8(csm_array *array, uint8_t value);
 int csm_axdr_wr_enum(csm_array *array, uint8_t value);

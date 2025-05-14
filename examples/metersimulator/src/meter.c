@@ -154,8 +154,8 @@ int meter_tcp_data_handler(int8_t channel_id, uint8_t *buffer, uint32_t payload_
                     ret = apdu_size + llc_size;
                     if (ret <= buffer_size)
                     {
-                        // Copy the APDU to the buffer
-                        memcpy(&buffer[0], csm_array_start(&ctx->asso.tx), ret);
+                        // Append the APDU to the buffer, after the LLC
+                        memcpy(&buffer[llc_size], csm_array_start(&ctx->asso.tx), ret);
                     }
                     else
                     {
