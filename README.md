@@ -76,6 +76,8 @@ FIXME: before writing this section, wait for stabilization of the HAL/Cosem API 
 
   * LN with ciphering Security Policy 0 (Authenticated & encrypted)
   * HLS 3, 4, 5, 6
+  * Get with multiple references
+  * Selective access by date and range
 
 ## Version X.0
 
