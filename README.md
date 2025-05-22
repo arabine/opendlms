@@ -20,6 +20,7 @@ This Cosem stack has the following goals :
 
 ## What is working so far
 
+  
   * BER coder/decoder
   * Association coders and decoders AARQ/AARE/RLRQ/RLRE (LLS)
   * Secure HLS5 GMAC Authentication
@@ -32,6 +33,14 @@ This Cosem stack has the following goals :
   * Client reader over HDLC with full logging and XML output
   * Server example as a meter simulator using TCP/IP Wrapper
   
+### Public client, no security:
+
+| Compliance Test name | result |
+|---|---|
+| APPL_IDLE_N1 | PASS |
+| APPL_OPEN_1 | PASS |
+| APPL_OPEN_4 | PASS |
+| APPL_OPEN_5 | PASS |
 
 ## What need to fix or validate
 
