@@ -54,15 +54,24 @@ static int csm_db_check_attribute(csm_db_request *db_request, const db_object_de
 
     if (attr != NULL)
     {
-        for (uint8_t i = 0U; i < size; i++)
+        // go direct to the attribute offset, if id is correct
+        int8_t offset = db_request->logical_name.id - 2; // Start at zero, and minus the logical name
+
+        if (offset < size)
         {
-            // Check attribute number and access rights
-            if ((attr->number == db_request->logical_name.id) && (access_rights & attr->access_rights) == access_rights)
+            // Now check the access right
+            if ((attr[offset].access_rights & access_rights) == access_rights)
             {
-                // Save the type for application usage
                 ret = TRUE;
-                break;
             }
+            else
+            {
+                CSM_ERR("[DB] Bad access rights");
+            }
+        }
+        else
+        {
+            CSM_ERR("[DB] Bad id");
         }
     }
 

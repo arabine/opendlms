@@ -37,10 +37,19 @@ This Cosem stack has the following goals :
 
 | Compliance Test name | result |
 |---|---|
-| APPL_IDLE_N1 | PASS |
-| APPL_OPEN_1 | PASS |
-| APPL_OPEN_4 | PASS |
-| APPL_OPEN_5 | PASS |
+| APPL_IDLE_N1 | PASSED |
+| APPL_OPEN_1 | PASSED |
+| APPL_OPEN_4 | PASSED |
+| APPL_OPEN_5 | PASSED |
+| APPL_OPEN_6 | PASSED |
+| APPL_OPEN_7 | SKIPPED |
+| APPL_OPEN_8 | FAILED |
+| APPL_OPEN_9 | PASSED |
+| APPL_OPEN_10 | FAILED |
+| APPL_OPEN_11 | FAILED |
+| APPL_OPEN_12 | FAILED |
+| APPL_REL_P1 | PASSED |
+| APPL_REL_N1 | SKIPPED |
 
 ## What need to fix or validate
 

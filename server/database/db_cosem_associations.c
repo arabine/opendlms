@@ -12,9 +12,12 @@ typedef struct
 
 static  asso_db_context_t g_asso_db_contexes[DB_NUMBER_OF_ASSOCIATIONS] = {0};
 
+static const char DefaultUser[] = "DEFAULT_USER";
+
 csm_db_code db_cosem_associations_func(csm_server_context_t *ctx, csm_array *in, csm_array *out)
 {
     csm_db_code code = CSM_ERR_OBJECT_ERROR;
+    int valid = TRUE;
 
     if ((ctx->asso.channel_id < 0) || (ctx->asso.channel_id >= DB_NUMBER_OF_ASSOCIATIONS))
     {
@@ -44,8 +47,6 @@ csm_db_code db_cosem_associations_func(csm_server_context_t *ctx, csm_array *in,
                 {
                     return code;
                 }
-
-                int valid = TRUE;
 
                 // -------- ONE LOOP == ONE OBJECT --------
                 if (ctx->asso.state == CSM_RESPONSE_STATE_START)
@@ -127,6 +128,32 @@ csm_db_code db_cosem_associations_func(csm_server_context_t *ctx, csm_array *in,
 
                 ctx->asso.current_loop++;
 
+            }
+            // users List
+            else if (ctx->request.db_request.logical_name.id == 10)
+            {
+                valid = valid && csm_array_write_u8(out, AXDR_TAG_ARRAY);
+                valid = valid && csm_ber_write_len(out, 1);
+                valid = valid && csm_array_write_u8(out, AXDR_TAG_STRUCTURE);
+                valid = valid && csm_ber_write_len(out, 2);
+                valid = valid && csm_axdr_wr_u8(out, 1);
+                valid = valid && csm_axdr_wr_octetstring(out, DefaultUser, sizeof(DefaultUser), AXDR_TAG_VISIBLESTRING);
+                code = CSM_OK;
+            }
+            // Current user
+            else if (ctx->request.db_request.logical_name.id == 11)
+            {
+                valid = valid && csm_array_write_u8(out, AXDR_TAG_STRUCTURE);
+                valid = valid && csm_ber_write_len(out, 2);
+                valid = valid && csm_axdr_wr_u8(out, 1);
+                valid = valid && csm_axdr_wr_octetstring(out, DefaultUser, sizeof(DefaultUser), AXDR_TAG_VISIBLESTRING);
+                code = CSM_OK;
+            }
+            else
+            {
+                // Not implemented
+                CSM_ERR("[DB] Unimplemented attribute");
+                code = CSM_ERR_OBJECT_ERROR;
             }
         }
         else if (ctx->request.db_request.service == SVC_SET)

@@ -26,7 +26,7 @@ static const uint8_t cOidHeader[] = {0x60U, 0x85U, 0x74U, 0x05U, 0x08U};
 
 typedef enum
 {
-    CSM_ACSE_ERR = 0U, ///< Encoding/decoding is NOT good, stop here if it is required
+    CSM_ACSE_ERR = 0U, ///< Encoding/decoding is NOT good, stop here
     CSM_ACSE_OK = 1U    ///< Encoding/decoding is good, we can continue
 
 } csm_acse_code;
@@ -528,6 +528,26 @@ static csm_acse_code acse_result_src_diag_decoder(csm_asso_state *state, csm_ber
     return ret;
 }
 
+static csm_acse_code acse_calling_ae_invoc_id_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    csm_acse_code ret = CSM_ACSE_ERR;
+
+    CSM_LOG("[ACSE] Decoding calling AE invocation ID tag ...");
+
+    int valid = csm_ber_decode(ber, array);
+    if (valid && (ber->length.length == 3U) && (ber->tag.tag == CSM_ASSO_CALLING_AE_INVOC_ID))
+    {
+        uint8_t id;
+        if (csm_ber_read_u8(array, &id))
+        {
+            // state->handshake.result = (enum csm_asso_result)result;
+            ret = CSM_ACSE_OK;
+        }
+    }
+    return ret;
+}
+
+
 
 static csm_acse_code acse_requirements_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
 {
@@ -581,7 +601,7 @@ static const csm_asso_dec aarq_decoder_chain[] =
     // {CSM_BER_TYPE_INTEGER,              ACSE_SKIP, acse_skip_decoder},
     {CSM_ASSO_CALLING_AP_TITLE,         ACSE_OPT, acse_client_system_title_decoder},
     // {CSM_ASSO_CALLING_AE_QUALIFIER,     ACSE_SKIP, acse_skip_decoder},
-    // {CSM_ASSO_CALLING_AP_INVOC_ID,      ACSE_SKIP, acse_skip_decoder},
+    {CSM_ASSO_CALLING_AP_INVOC_ID,      ACSE_OPT, acse_calling_ae_invoc_id_decoder},
     // {CSM_BER_TYPE_INTEGER,              ACSE_SKIP, acse_skip_decoder},
     // {CSM_ASSO_CALLING_AE_INVOC_ID,      ACSE_SKIP, acse_skip_decoder},
     // {CSM_BER_TYPE_INTEGER,              ACSE_SKIP, acse_skip_decoder},
