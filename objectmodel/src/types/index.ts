@@ -10,8 +10,8 @@ export interface DlmsAttribute {
 export interface DlmsObject {
   id: number
   name: string
-  classId: string
-  version: string
+  classId: number
+  version: number
   obisCode: string
   attributes: DlmsAttribute[]
   expanded: boolean

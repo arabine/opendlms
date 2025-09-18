@@ -48,8 +48,8 @@ class ExcelService {
         currentObject = {
           id: ++objectCounter,
           name: String(row[1] || 'Objet sans nom'),
-          classId: String(row[3] || ''),
-          version: String(row[4] || ''),
+          classId: parseInt(String(row[3] || '')),
+          version: parseInt(String(row[4] || '')),
           obisCode: String(row[6] || ''),
           attributes: [],
           expanded: false
