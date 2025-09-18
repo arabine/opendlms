@@ -1,0 +1,67 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom styles */
+.tree-line {
+  border-left: 2px solid #e5e7eb;
+  margin-left: 12px;
+  padding-left: 16px;
+}
+
+.tree-connector::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 0;
+  width: 16px;
+  height: 1rem;
+  border-left: 2px solid #e5e7eb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.attribute-row {
+  position: relative;
+}
+
+.compact-node {
+  min-height: 2rem;
+}
+
+.search-highlight {
+  background-color: #fef3c7;
+  font-weight: 600;
+}
+
+.attribute-selectable {
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 4px;
+  margin: -4px;
+  padding: 4px;
+}
+
+.attribute-selectable:hover {
+  background-color: #f3f4f6;
+}
+
+.attribute-selected {
+  background-color: #dbeafe;
+  border: 2px solid #3b82f6;
+}
+
+.xml-output {
+  font-family: 'Courier New', monospace;
+  white-space: pre-wrap;
+  tab-size: 2;
+}
+
+.copy-success {
+  animation: flash-green 0.5s ease-in-out;
+}
+
+@keyframes flash-green {
+  0% { background-color: transparent; }
+  50% { background-color: #dcfce7; }
+  100% { background-color: transparent; }
+}

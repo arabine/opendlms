@@ -25,8 +25,8 @@ const db_attr_descr current_association_attributes[] = {
 { DB_ACCESS_SET, 7 },
 { DB_ACCESS_GETSET, 8 },
 { DB_ACCESS_GETSET, 9 },
-{ DB_ACCESS_GETSET, 10 },
-{ DB_ACCESS_GETSET, 11 },
+{ DB_ACCESS_GET, 10 },
+{ DB_ACCESS_GET, 11 },
 };
 
 const db_attr_descr current_association_methods[] = {
