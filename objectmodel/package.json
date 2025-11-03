@@ -10,6 +10,10 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "events": "^3.3.0",
+    "mammoth": "^1.6.0",
+    "pouchdb": "^9.0.0",
+    "pouchdb-find": "^9.0.0",
     "vue": "^3.3.4",
     "xlsx": "^0.18.5"
   },

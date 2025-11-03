@@ -4,32 +4,66 @@
       <div class="bg-white rounded-lg shadow-lg p-6">
         <HeaderComponent />
         
-        <FileUploadComponent
-          :loading="loading"
-          @file-upload="handleFileUpload"
-        />
+        <!-- Onglets de navigation -->
+        <div class="flex border-b border-gray-200 mb-6">
+          <button
+            @click="activeTab = 'cosem'"
+            :class="[
+              'px-6 py-3 font-semibold transition-colors duration-200',
+              activeTab === 'cosem'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+            ]"
+          >
+            📊 COSEM Object Model
+          </button>
+          <button
+            @click="activeTab = 'atp'"
+            :class="[
+              'px-6 py-3 font-semibold transition-colors duration-200',
+              activeTab === 'atp'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+            ]"
+          >
+            📋 Tests ATP
+          </button>
+        </div>
 
-        <LoadingComponent v-if="loading" />
-        
-        <ErrorComponent
-          v-if="error"
-          :error="error"
-        />
+        <!-- Contenu COSEM -->
+        <div v-if="activeTab === 'cosem'">
+          <FileUploadComponent
+            :loading="loading"
+            @file-upload="handleFileUpload"
+          />
 
-        <MainContentComponent
-          v-if="cosemObjects.length > 0"
-          :cosem-objects="cosemObjects"
-          :search-query="searchQuery"
-          :selected-object="selectedObject"
-          :selected-attribute="selectedAttribute"
-          @update-search="searchQuery = $event"
-          @select-attribute="selectAttribute"
-          @toggle-object="toggleObject"
-        />
+          <LoadingComponent v-if="loading" />
+          
+          <ErrorComponent
+            v-if="error"
+            :error="error"
+          />
 
-        <EmptyStateComponent
-          v-if="!loading && cosemObjects.length === 0"
-        />
+          <MainContentComponent
+            v-if="cosemObjects.length > 0"
+            :cosem-objects="cosemObjects"
+            :search-query="searchQuery"
+            :selected-object="selectedObject"
+            :selected-attribute="selectedAttribute"
+            @update-search="searchQuery = $event"
+            @select-attribute="selectAttribute"
+            @toggle-object="toggleObject"
+          />
+
+          <EmptyStateComponent
+            v-if="!loading && cosemObjects.length === 0"
+          />
+        </div>
+
+        <!-- Contenu ATP -->
+        <div v-if="activeTab === 'atp'">
+          <AtpManager />
+        </div>
       </div>
     </div>
   </div>
@@ -43,9 +77,11 @@ import LoadingComponent from './components/LoadingComponent.vue'
 import ErrorComponent from './components/ErrorComponent.vue'
 import MainContentComponent from './components/MainContentComponent.vue'
 import EmptyStateComponent from './components/EmptyStateComponent.vue'
+import AtpManager from './components/AtpManager.vue'
 import { excelService } from './services/excelService'
 import type { DlmsObject, DlmsAttribute, SelectAttributeEvent } from '@/types'
 
+const activeTab = ref<'cosem' | 'atp'>('cosem')
 const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
 const cosemObjects = ref<DlmsObject[]>([])
