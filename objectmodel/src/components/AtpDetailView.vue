@@ -123,44 +123,95 @@
         </div>
       </div>
 
-      <!-- Champs détaillés du test case (si applicable) -->
+      <!-- Champs détaillés de la PROCÉDURE (si applicable) -->
+      <div v-if="test.type === 'procedure' && hasProcedureFields" class="border-t border-gray-200 pt-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Détails de la procédure</h3>
+        <div class="space-y-4">
+          <div v-if="test.references" class="bg-blue-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-blue-600 uppercase mb-2">References</div>
+            <div class="text-sm text-gray-900">{{ test.references }}</div>
+          </div>
+          <div v-if="test.testPurpose" class="bg-blue-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-blue-600 uppercase mb-2">Test Purpose</div>
+            <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ test.testPurpose }}</div>
+          </div>
+          <div v-if="test.procedureBody" class="bg-blue-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-blue-600 uppercase mb-2">Procedure Body</div>
+            <div class="text-sm text-gray-900 whitespace-pre-wrap font-mono">{{ test.procedureBody }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Champs détaillés du TEST CASE (si applicable) -->
       <div v-if="test.type === 'test-case' && hasDetailedFields" class="border-t border-gray-200 pt-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-3">Détails du test case</h3>
         <div class="space-y-4">
-          <div v-if="test.useCase" class="bg-gray-50 rounded-lg p-4">
-            <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Use Case</div>
+          <div v-if="test.useCase" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">Use Case</div>
             <div class="text-sm text-gray-900">{{ test.useCase }}</div>
           </div>
-          <div v-if="test.scenario" class="bg-gray-50 rounded-lg p-4">
-            <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Scenario</div>
+          <div v-if="test.scenario" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">Scenario</div>
             <div class="text-sm text-gray-900">{{ test.scenario }}</div>
           </div>
-          <div v-if="test.testPurpose" class="bg-gray-50 rounded-lg p-4">
-            <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Test Purpose</div>
+          <div v-if="test.step" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">Step</div>
+            <div class="text-sm text-gray-900">{{ test.step }}</div>
+          </div>
+          <div v-if="test.references" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">References</div>
+            <div class="text-sm text-gray-900">{{ test.references }}</div>
+          </div>
+          <div v-if="test.testPurpose" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">Test Purpose</div>
             <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ test.testPurpose }}</div>
           </div>
-          <div v-if="test.testStrategy" class="bg-gray-50 rounded-lg p-4">
-            <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Test Strategy</div>
+          <div v-if="test.testStrategy" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">Test Strategy</div>
             <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ test.testStrategy }}</div>
           </div>
-          <div v-if="test.prerequisites" class="bg-gray-50 rounded-lg p-4">
-            <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Prerequisites</div>
+          <div v-if="test.aaFilter" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">AA Filter</div>
+            <div class="text-sm text-gray-900">{{ test.aaFilter }}</div>
+          </div>
+          <div v-if="test.prerequisites" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">Prerequisites</div>
             <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ test.prerequisites }}</div>
           </div>
-          <div v-if="test.preamble" class="bg-gray-50 rounded-lg p-4">
-            <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Preamble</div>
+          <div v-if="test.expectedResult" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">Expected Result</div>
+            <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ test.expectedResult }}</div>
+          </div>
+          <div v-if="test.preamble" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">Preamble</div>
             <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ test.preamble }}</div>
           </div>
-          <div v-if="test.testBody" class="bg-gray-50 rounded-lg p-4">
-            <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Test Body</div>
+          
+          <!-- Test Body avec étapes séparées -->
+          <div v-if="test.testBodySteps && test.testBodySteps.length > 0" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-3">Test Body Steps</div>
+            <div class="space-y-2">
+              <div
+                v-for="(step, idx) in test.testBodySteps"
+                :key="idx"
+                class="bg-white rounded p-3 border-l-4 border-green-500"
+              >
+                <div class="text-xs font-semibold text-gray-500 mb-1">Step {{ idx + 1 }}</div>
+                <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ step }}</div>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="test.testBody" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">Test Body</div>
             <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ test.testBody }}</div>
           </div>
-          <div v-if="test.postamble" class="bg-gray-50 rounded-lg p-4">
-            <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Postamble</div>
+          
+          <div v-if="test.postamble" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">Postamble</div>
             <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ test.postamble }}</div>
           </div>
-          <div v-if="test.comment" class="bg-gray-50 rounded-lg p-4">
-            <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Comment</div>
+          <div v-if="test.comment" class="bg-green-50 rounded-lg p-4">
+            <div class="text-xs font-semibold text-green-600 uppercase mb-2">Comment</div>
             <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ test.comment }}</div>
           </div>
         </div>
@@ -246,16 +297,30 @@ const emit = defineEmits<{
 
 const copySuccess = ref<boolean>(false)
 
+const hasProcedureFields = computed(() => {
+  if (!props.test || props.test.type !== 'procedure') return false
+  return !!(
+    props.test.references ||
+    props.test.testPurpose ||
+    props.test.procedureBody
+  )
+})
+
 const hasDetailedFields = computed(() => {
-  if (!props.test) return false
+  if (!props.test || props.test.type !== 'test-case') return false
   return !!(
     props.test.useCase ||
     props.test.scenario ||
+    props.test.step ||
+    props.test.references ||
     props.test.testPurpose ||
     props.test.testStrategy ||
+    props.test.aaFilter ||
     props.test.prerequisites ||
+    props.test.expectedResult ||
     props.test.preamble ||
     props.test.testBody ||
+    props.test.testBodySteps ||
     props.test.postamble ||
     props.test.comment
   )

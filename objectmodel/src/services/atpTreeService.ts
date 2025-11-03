@@ -3,71 +3,92 @@ import type { AtpTest, AtpTreeNode } from '@/types'
 class AtpTreeService {
   /**
    * Organiser les tests en structure d'arbre hiérarchique
+   * Sépare les procédures et les test cases en deux arbres distincts
    */
-  buildTree(tests: AtpTest[]): { chapters: AtpTreeNode[], procedures: AtpTest[] } {
-    // Séparer les procédures des autres éléments
+  buildTree(tests: AtpTest[]): { 
+    procedureTree: AtpTreeNode[], 
+    testCaseTree: AtpTreeNode[],
+    procedures: AtpTest[],
+    testCases: AtpTest[]
+  } {
+    // Séparer les procédures des test cases
     const procedures = tests.filter(t => t.type === 'procedure')
-    const otherTests = tests.filter(t => t.type !== 'procedure')
+    const testCases = tests.filter(t => t.type === 'test-case')
+    const chapters = tests.filter(t => t.type === 'chapter')
+    const sections = tests.filter(t => t.type === 'section')
+    
+    // Construire l'arbre des procédures (plat, juste une liste)
+    const procedureTree: AtpTreeNode[] = procedures.map(proc => ({
+      id: proc._id,
+      test: proc,
+      children: [],
+      expanded: false
+    }))
+    
+    // Construire l'arbre des test cases (hiérarchique avec chapitres/sections)
+    const testCaseTree: AtpTreeNode[] = chapters.map(chapter => 
+      this.createTestCaseNode(chapter, sections, testCases)
+    )
 
-    // Trier par ligne pour maintenir l'ordre
-    otherTests.sort((a, b) => a.line - b.line)
-
-    // Créer les nœuds de chapitres
-    const chapters = otherTests
-      .filter(t => t.type === 'chapter')
-      .map(chapter => this.createNode(chapter, otherTests))
-
-    return { chapters, procedures: procedures.sort((a, b) => a.line - b.line) }
+    return { 
+      procedureTree, 
+      testCaseTree,
+      procedures: procedures.sort((a, b) => (a.title || '').localeCompare(b.title || '')),
+      testCases: testCases.sort((a, b) => (a.testId || '').localeCompare(b.testId || ''))
+    }
   }
 
   /**
-   * Créer un nœud d'arbre récursivement
+   * Créer un nœud d'arbre pour les test cases (structure hiérarchique)
    */
-  private createNode(test: AtpTest, allTests: AtpTest[]): AtpTreeNode {
+  private createTestCaseNode(
+    chapter: AtpTest, 
+    allSections: AtpTest[], 
+    allTestCases: AtpTest[]
+  ): AtpTreeNode {
     const node: AtpTreeNode = {
-      id: test._id,
-      test,
+      id: chapter._id,
+      test: chapter,
       children: [],
       expanded: false
     }
 
-    // Si c'est un chapitre, trouver ses sections et tests
-    if (test.type === 'chapter') {
-      // Trouver les sections qui appartiennent à ce chapitre
-      const sections = allTests.filter(t => 
-        t.type === 'section' && t.parent === test.number
-      )
+    // Trouver les sections qui appartiennent à ce chapitre
+    const chapterSections = allSections.filter(s => s.parent === chapter.number)
+    
+    // Trouver les tests qui appartiennent directement à ce chapitre
+    const directTests = allTestCases.filter(t => 
+      t.chapter === chapter.number && !t.parent
+    )
 
-      // Trouver les tests qui appartiennent directement à ce chapitre
-      const directTests = allTests.filter(t => 
-        t.type === 'test-case' && t.chapter === test.number && !t.parent
-      )
-
-      // Créer les nœuds pour les sections
-      node.children = sections.map(section => this.createNode(section, allTests))
-
-      // Ajouter les tests directs comme nœuds
-      node.children.push(...directTests.map(t => ({
-        id: t._id,
-        test: t,
+    // Créer les nœuds pour les sections
+    node.children = chapterSections.map(section => {
+      const sectionNode: AtpTreeNode = {
+        id: section._id,
+        test: section,
         children: [],
         expanded: false
-      })))
-    }
-
-    // Si c'est une section, trouver ses tests
-    if (test.type === 'section') {
-      const sectionTests = allTests.filter(t => 
-        t.type === 'test-case' && t.parent === test.number
-      )
-
-      node.children = sectionTests.map(t => ({
+      }
+      
+      // Ajouter les tests de cette section
+      const sectionTests = allTestCases.filter(t => t.parent === section.number)
+      sectionNode.children = sectionTests.map(t => ({
         id: t._id,
         test: t,
         children: [],
         expanded: false
       }))
-    }
+      
+      return sectionNode
+    })
+
+    // Ajouter les tests directs
+    node.children.push(...directTests.map(t => ({
+      id: t._id,
+      test: t,
+      children: [],
+      expanded: false
+    })))
 
     return node
   }

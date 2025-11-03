@@ -114,23 +114,32 @@ export interface AtpTest {
   line?: number  // Optionnel maintenant
   parent?: string | null
   chapter?: string | null
+  section?: string | null  // Section parente (pour procédures et test cases)
   timestamp: string
   _rev?: string
   // Données de tableau (si applicable)
   tableColumns?: string[]  // En-têtes du tableau
   tableData?: Record<string, string>  // Données clé-valeur du tableau (pour les tableaux 2 colonnes)
   tableRows?: string[][]  // Données brutes du tableau (pour les tableaux multi-colonnes)
-  // Champs de test case détaillés
-  useCase?: string
-  scenario?: string
-  testPurpose?: string
-  testStrategy?: string
-  aaFilter?: string
-  prerequisites?: string
-  preamble?: string
-  testBody?: string
-  postamble?: string
-  comment?: string
+  
+  // === Champs de PROCEDURE ===
+  references?: string          // References (pour procédure)
+  procedureBody?: string       // Procedure body (pour procédure)
+  
+  // === Champs de TEST CASE ===
+  useCase?: string            // Use Case
+  scenario?: string           // Scenario
+  step?: string               // Step (optionnel)
+  testPurpose?: string        // Test purpose
+  testStrategy?: string       // Test strategy
+  aaFilter?: string           // AA filter / AAs used
+  prerequisites?: string      // Prerequisites
+  expectedResult?: string     // Expected result (optionnel)
+  preamble?: string           // Preamble
+  testBody?: string           // Test body (peut contenir plusieurs subtests)
+  testBodySteps?: string[]    // Test body décomposé en étapes
+  postamble?: string          // Postamble
+  comment?: string            // Comment
 }
 
 export interface AtpTestStats {

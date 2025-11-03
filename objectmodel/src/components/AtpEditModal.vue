@@ -82,14 +82,24 @@
             </div>
           </div>
 
-          <!-- Parent et Chapitre -->
-          <div class="grid grid-cols-2 gap-4">
+          <!-- Parent, Section et Chapitre -->
+          <div class="grid grid-cols-3 gap-4">
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-2">Parent</label>
               <input
                 v-model="formData.parent"
                 type="text"
                 placeholder="Ex: 7"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Section</label>
+              <input
+                v-model="formData.section"
+                type="text"
+                placeholder="Ex: 7.1"
                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -102,6 +112,41 @@
                 placeholder="Ex: 7"
                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+          </div>
+
+          <!-- Champs détaillés pour procedure -->
+          <div v-if="formData.type === 'procedure'" class="space-y-4 border-t border-gray-200 pt-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Détails de la procédure</h3>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">References</label>
+              <textarea
+                v-model="formData.references"
+                rows="2"
+                placeholder="Références (ex: ACESM GCP Object definition File)"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              ></textarea>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Test Purpose</label>
+              <textarea
+                v-model="formData.testPurpose"
+                rows="3"
+                placeholder="Objectif de la procédure..."
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              ></textarea>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Procedure Body</label>
+              <textarea
+                v-model="formData.procedureBody"
+                rows="8"
+                placeholder="Corps de la procédure..."
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+              ></textarea>
             </div>
           </div>
 
@@ -167,6 +212,16 @@
                 v-model="formData.prerequisites"
                 rows="3"
                 placeholder="Prérequis du test..."
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              ></textarea>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Expected Result</label>
+              <textarea
+                v-model="formData.expectedResult"
+                rows="3"
+                placeholder="Résultat attendu..."
                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               ></textarea>
             </div>
@@ -260,12 +315,16 @@ const formData = ref<Partial<AtpTest>>({
   testId: '',
   parent: null,
   chapter: null,
+  section: null,
+  references: '',
+  testPurpose: '',
+  procedureBody: '',
   useCase: '',
   scenario: '',
-  testPurpose: '',
   testStrategy: '',
   aaFilter: '',
   prerequisites: '',
+  expectedResult: '',
   preamble: '',
   testBody: '',
   postamble: '',
@@ -281,12 +340,16 @@ const resetForm = () => {
     testId: '',
     parent: null,
     chapter: null,
+    section: null,
+    references: '',
+    testPurpose: '',
+    procedureBody: '',
     useCase: '',
     scenario: '',
-    testPurpose: '',
     testStrategy: '',
     aaFilter: '',
     prerequisites: '',
+    expectedResult: '',
     preamble: '',
     testBody: '',
     postamble: '',

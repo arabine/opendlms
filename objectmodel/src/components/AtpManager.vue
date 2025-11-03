@@ -28,12 +28,15 @@
       <!-- Colonne gauche : Tree View -->
       <div class="col-span-4 bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
         <AtpTreeView
-          :chapters="chapters"
+          :procedure-tree="procedureTree"
+          :test-case-tree="testCaseTree"
           :procedures="procedures"
+          :test-cases="testCases"
           :selected-test="selectedTest"
           :search-query="searchQuery"
           @select="handleSelectTest"
-          @toggle="handleToggleNode"
+          @toggle-procedure="handleToggleProcedure"
+          @toggle-testcase="handleToggleTestCase"
           @update-search="searchQuery = $event"
         />
       </div>
@@ -91,8 +94,10 @@ const loading = ref<boolean>(false)
 const tests = ref<AtpTest[]>([])
 const searchQuery = ref<string>('')
 const selectedTest = ref<AtpTest | null>(null)
-const chapters = ref<AtpTreeNode[]>([])
+const procedureTree = ref<AtpTreeNode[]>([])
+const testCaseTree = ref<AtpTreeNode[]>([])
 const procedures = ref<AtpTest[]>([])
+const testCases = ref<AtpTest[]>([])
 const isEditModalOpen = ref<boolean>(false)
 const testToEdit = ref<AtpTest | null>(null)
 const notification = ref<{ type: 'success' | 'error', message: string } | null>(null)
@@ -102,8 +107,8 @@ const stats = computed<AtpTestStats>(() => {
     total: tests.value.length,
     chapters: tests.value.filter(t => t.type === 'chapter').length,
     sections: tests.value.filter(t => t.type === 'section').length,
-    procedures: tests.value.filter(t => t.type === 'procedure').length,
-    tests: tests.value.filter(t => t.type === 'test-case').length
+    procedures: procedures.value.length,
+    tests: testCases.value.length
   }
 })
 
@@ -112,10 +117,12 @@ const loadTests = async (): Promise<void> => {
     loading.value = true
     tests.value = await atpDatabaseService.getAllTests()
     
-    // Construire la structure en arbre
+    // Construire les structures en arbre séparées
     const tree = atpTreeService.buildTree(tests.value)
-    chapters.value = tree.chapters
+    procedureTree.value = tree.procedureTree
+    testCaseTree.value = tree.testCaseTree
     procedures.value = tree.procedures
+    testCases.value = tree.testCases
   } catch (error) {
     console.error('Error loading tests:', error)
     showNotification('error', 'Erreur lors du chargement des tests')
@@ -128,8 +135,12 @@ const handleSelectTest = (test: AtpTest): void => {
   selectedTest.value = test
 }
 
-const handleToggleNode = (id: string): void => {
-  chapters.value = atpTreeService.toggleNode(chapters.value, id)
+const handleToggleProcedure = (id: string): void => {
+  procedureTree.value = atpTreeService.toggleNode(procedureTree.value, id)
+}
+
+const handleToggleTestCase = (id: string): void => {
+  testCaseTree.value = atpTreeService.toggleNode(testCaseTree.value, id)
 }
 
 const openAddModal = (): void => {

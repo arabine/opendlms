@@ -5,37 +5,66 @@
     </h2>
     
     <div class="space-y-4">
-      <!-- Zone de chargement de fichier -->
-      <div class="flex items-center gap-4">
-        <label
-          for="atp-file-input"
-          class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 inline-flex items-center"
-          :class="{ 'opacity-50 cursor-not-allowed': loading }"
-        >
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-          Charger fichier ATP
-        </label>
-        <input
-          id="atp-file-input"
-          type="file"
-          accept=".docx,.txt"
-          class="hidden"
-          :disabled="loading"
-          @change="handleFileChange"
-        />
-        
-        <span v-if="fileName" class="text-gray-600 text-sm">
-          {{ fileName }}
-        </span>
+      <!-- Zone de chargement de fichiers avec deux boutons -->
+      <div class="flex flex-col gap-4">
+        <!-- Bouton Procédures -->
+        <div class="flex items-center gap-4">
+          <label
+            for="atp-procedures-input"
+            class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 inline-flex items-center"
+            :class="{ 'opacity-50 cursor-not-allowed': loading }"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            📝 Charger Procédures
+          </label>
+          <input
+            id="atp-procedures-input"
+            type="file"
+            accept=".md,.markdown,.html,.htm,.txt"
+            class="hidden"
+            :disabled="loading"
+            @change="handleProceduresFileChange"
+          />
+          
+          <span v-if="proceduresFile" class="text-gray-600 text-sm">
+            📝 {{ proceduresFile.name }}
+          </span>
+        </div>
+
+        <!-- Bouton Test Cases -->
+        <div class="flex items-center gap-4">
+          <label
+            for="atp-testcases-input"
+            class="cursor-pointer bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 inline-flex items-center"
+            :class="{ 'opacity-50 cursor-not-allowed': loading }"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+            ✅ Charger Test Cases
+          </label>
+          <input
+            id="atp-testcases-input"
+            type="file"
+            accept=".md,.markdown,.html,.htm,.txt"
+            class="hidden"
+            :disabled="loading"
+            @change="handleTestCasesFileChange"
+          />
+          
+          <span v-if="testCasesFile" class="text-gray-600 text-sm">
+            ✅ {{ testCasesFile.name }}
+          </span>
+        </div>
       </div>
 
       <!-- Boutons d'action -->
       <div class="flex gap-3">
         <button
           @click="parseAndSave"
-          :disabled="!selectedFile || loading || parsing"
+          :disabled="(!proceduresFile && !testCasesFile) || loading || parsing"
           class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed inline-flex items-center"
         >
           <svg v-if="parsing" class="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
@@ -43,7 +72,7 @@
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
           <svg v-else class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
           {{ parsing ? 'Parsing...' : 'Parser et Enregistrer' }}
         </button>
@@ -94,39 +123,95 @@ const emit = defineEmits<{
   (e: 'tests-updated'): void
 }>()
 
-const selectedFile = ref<File | null>(null)
-const fileName = ref<string>('')
+const proceduresFile = ref<File | null>(null)
+const testCasesFile = ref<File | null>(null)
 const parsing = ref<boolean>(false)
 const message = ref<{ type: 'success' | 'error' | 'info', text: string } | null>(null)
 
-const handleFileChange = (event: Event): void => {
+const handleProceduresFileChange = (event: Event): void => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   
   if (file) {
-    selectedFile.value = file
-    fileName.value = file.name
+    proceduresFile.value = file
+    message.value = null
+  }
+}
+
+const handleTestCasesFileChange = (event: Event): void => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  
+  if (file) {
+    testCasesFile.value = file
     message.value = null
   }
 }
 
 const parseAndSave = async (): Promise<void> => {
-  if (!selectedFile.value) return
+  if (!proceduresFile.value && !testCasesFile.value) {
+    message.value = { type: 'error', text: '❌ Veuillez charger au moins un fichier (procédures ou test cases)' }
+    return
+  }
 
   parsing.value = true
-  message.value = { type: 'info', text: 'Parsing du fichier en cours...' }
+  message.value = { type: 'info', text: 'Parsing des fichiers en cours...' }
 
   try {
-    const tests = await atpParserService.parseFile(selectedFile.value)
-    message.value = { type: 'info', text: `${tests.length} éléments trouvés. Enregistrement...` }
+    let allTests: any[] = []
+
+    // Parser les procédures si présentes
+    if (proceduresFile.value) {
+      message.value = { type: 'info', text: '📝 Parsing des procédures...' }
+      const procedures = await atpParserService.parseFile(proceduresFile.value, 'procedures')
+      allTests = allTests.concat(procedures)
+      console.log(`✅ ${procedures.length} éléments parsés depuis le fichier procédures`)
+      
+      // Afficher le détail des types
+      const procedureStats = procedures.reduce((acc, test) => {
+        acc[test.type] = (acc[test.type] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+      console.log('  Types détectés:', procedureStats)
+    }
+
+    // Parser les test cases si présents
+    if (testCasesFile.value) {
+      message.value = { type: 'info', text: '✅ Parsing des test cases...' }
+      const testCases = await atpParserService.parseFile(testCasesFile.value, 'test-cases')
+      allTests = allTests.concat(testCases)
+      console.log(`✅ ${testCases.length} éléments parsés depuis le fichier test cases`)
+      
+      // Afficher le détail des types
+      const testCaseStats = testCases.reduce((acc, test) => {
+        acc[test.type] = (acc[test.type] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+      console.log('  Types détectés:', testCaseStats)
+    }
+
+    message.value = { type: 'info', text: `${allTests.length} éléments trouvés. Enregistrement...` }
 
     // Effacer d'abord la base
     await atpDatabaseService.clearDatabase()
 
-    // Insérer les nouveaux tests
-    const inserted = await atpDatabaseService.saveTests(tests)
+    // Insérer tous les tests
+    const inserted = await atpDatabaseService.saveTests(allTests)
     
-    message.value = { type: 'success', text: `✅ ${inserted} éléments enregistrés avec succès!` }
+    // Compter les types
+    const stats = allTests.reduce((acc, test) => {
+      acc[test.type] = (acc[test.type] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+    
+    const statsText = Object.entries(stats)
+      .map(([type, count]) => `${count} ${type}`)
+      .join(', ')
+    
+    message.value = { 
+      type: 'success', 
+      text: `✅ ${inserted} éléments enregistrés avec succès! (${statsText})` 
+    }
     emit('tests-updated')
 
     // Effacer le message après 5 secondes
@@ -138,7 +223,7 @@ const parseAndSave = async (): Promise<void> => {
       type: 'error',
       text: `❌ Erreur: ${error instanceof Error ? error.message : String(error)}`
     }
-    console.error('Error parsing ATP file:', error)
+    console.error('Error parsing ATP files:', error)
   } finally {
     parsing.value = false
   }
