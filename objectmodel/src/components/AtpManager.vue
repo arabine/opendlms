@@ -46,7 +46,7 @@
       <div class="flex-1 bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 flex flex-col min-h-0">
         <AtpDetailView
           :test="selectedTest"
-          @edit="openEditModal"
+          @update="handleUpdateTest"
           @delete="handleDeleteTest"
         />
       </div>
@@ -345,6 +345,33 @@ const handleSaveTest = async (test: AtpTest): Promise<void> => {
   } catch (error) {
     console.error('Error saving test:', error)
     showNotification('error', 'Erreur lors de la sauvegarde du test')
+  }
+}
+
+const handleUpdateTest = async (test: AtpTest): Promise<void> => {
+  try {
+    // Capturer l'état d'expansion avant le reload
+    const procedureExpandedState = captureExpandedState(procedureTree.value)
+    const testCaseExpandedState = captureExpandedState(testCaseTree.value)
+
+    // Mettre à jour le test dans la base de données
+    await atpDatabaseService.updateTest(test)
+    showNotification('success', 'Test mis à jour avec succès')
+
+    // Mettre à jour le test sélectionné
+    if (selectedTest.value?._id === test._id) {
+      selectedTest.value = test
+    }
+
+    // Recharger les tests
+    await loadTests()
+
+    // Restaurer l'état d'expansion
+    procedureTree.value = restoreExpandedState(procedureTree.value, procedureExpandedState)
+    testCaseTree.value = restoreExpandedState(testCaseTree.value, testCaseExpandedState)
+  } catch (error) {
+    console.error('Error updating test:', error)
+    showNotification('error', 'Erreur lors de la mise à jour du test')
   }
 }
 
