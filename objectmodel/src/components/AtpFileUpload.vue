@@ -1,59 +1,57 @@
 <template>
-  <div class="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
-    <h2 class="text-lg font-semibold text-gray-900 hidden sm:block">
-      📋 ATP Manager
-    </h2>
-
-    <!-- Groupe de chargement -->
+  <div class="flex flex-col gap-3">
+    <!-- Ligne des boutons -->
     <div class="flex flex-wrap items-center gap-2">
-      <!-- Bouton Procédures -->
-      <label
-        for="atp-procedures-input"
-        class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 inline-flex items-center text-sm whitespace-nowrap"
-        :class="{ 'opacity-50 cursor-not-allowed': loading }"
-      >
-        <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <span class="hidden sm:inline">Procédures</span>
-        <span class="sm:hidden">Proc.</span>
-      </label>
-      <input
-        id="atp-procedures-input"
-        type="file"
-        accept=".md,.markdown,.html,.htm,.txt"
-        class="hidden"
-        :disabled="loading"
-        @change="handleProceduresFileChange"
-      />
+      <!-- Groupe de chargement -->
+      <div class="flex items-center gap-2">
+        <!-- Bouton Procédures -->
+        <label
+          for="atp-procedures-input"
+          class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 inline-flex items-center text-sm whitespace-nowrap"
+          :class="{ 'opacity-50 cursor-not-allowed': loading }"
+        >
+          <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span class="hidden sm:inline">Procédures</span>
+          <span class="sm:hidden">Proc.</span>
+        </label>
+        <input
+          id="atp-procedures-input"
+          type="file"
+          accept=".md,.markdown,.html,.htm,.txt"
+          class="hidden"
+          :disabled="loading"
+          @change="handleProceduresFileChange"
+        />
 
-      <!-- Bouton Test Cases -->
-      <label
-        for="atp-testcases-input"
-        class="cursor-pointer bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 inline-flex items-center text-sm whitespace-nowrap"
-        :class="{ 'opacity-50 cursor-not-allowed': loading }"
-      >
-        <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-        </svg>
-        <span class="hidden sm:inline">Test Cases</span>
-        <span class="sm:hidden">Tests</span>
-      </label>
-      <input
-        id="atp-testcases-input"
-        type="file"
-        accept=".md,.markdown,.html,.htm,.txt"
-        class="hidden"
-        :disabled="loading"
-        @change="handleTestCasesFileChange"
-      />
-    </div>
+        <!-- Bouton Test Cases -->
+        <label
+          for="atp-testcases-input"
+          class="cursor-pointer bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 inline-flex items-center text-sm whitespace-nowrap"
+          :class="{ 'opacity-50 cursor-not-allowed': loading }"
+        >
+          <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+          <span class="hidden sm:inline">Test Cases</span>
+          <span class="sm:hidden">Tests</span>
+        </label>
+        <input
+          id="atp-testcases-input"
+          type="file"
+          accept=".md,.markdown,.html,.htm,.txt"
+          class="hidden"
+          :disabled="loading"
+          @change="handleTestCasesFileChange"
+        />
+      </div>
 
-    <!-- Séparateur -->
-    <div class="hidden lg:block h-6 w-px bg-gray-300"></div>
+      <!-- Séparateur -->
+      <div class="hidden lg:block h-6 w-px bg-gray-300"></div>
 
-    <!-- Groupe d'actions -->
-    <div class="flex flex-wrap items-center gap-2">
+      <!-- Groupe d'actions -->
+      <div class="flex flex-wrap items-center gap-2">
       <button
         @click="parseAndSave"
         :disabled="(!proceduresFile && !testCasesFile) || loading || parsing"
@@ -88,16 +86,35 @@
         </svg>
         <span class="hidden sm:inline">Effacer</span>
       </button>
+      </div>
+
+      <!-- Messages (tooltip style) -->
+      <div v-if="message" :class="[
+        'px-3 py-1.5 rounded-md text-sm font-medium',
+        message.type === 'success' ? 'bg-green-100 text-green-800' : '',
+        message.type === 'error' ? 'bg-red-100 text-red-800' : '',
+        message.type === 'info' ? 'bg-blue-100 text-blue-800' : ''
+      ]">
+        {{ message.text }}
+      </div>
     </div>
 
-    <!-- Messages (tooltip style) -->
-    <div v-if="message" :class="[
-      'w-full sm:w-auto px-3 py-1.5 rounded-md text-sm font-medium',
-      message.type === 'success' ? 'bg-green-100 text-green-800' : '',
-      message.type === 'error' ? 'bg-red-100 text-red-800' : '',
-      message.type === 'info' ? 'bg-blue-100 text-blue-800' : ''
-    ]">
-      {{ message.text }}
+    <!-- Noms des fichiers sélectionnés -->
+    <div v-if="proceduresFile || testCasesFile" class="flex flex-wrap gap-3 text-xs text-gray-600">
+      <div v-if="proceduresFile" class="flex items-center gap-1.5 px-2 py-1 bg-blue-50 rounded">
+        <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <span class="font-medium">Proc:</span>
+        <span class="truncate max-w-[200px]" :title="proceduresFile.name">{{ proceduresFile.name }}</span>
+      </div>
+      <div v-if="testCasesFile" class="flex items-center gap-1.5 px-2 py-1 bg-green-50 rounded">
+        <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+        <span class="font-medium">Tests:</span>
+        <span class="truncate max-w-[200px]" :title="testCasesFile.name">{{ testCasesFile.name }}</span>
+      </div>
     </div>
   </div>
 </template>

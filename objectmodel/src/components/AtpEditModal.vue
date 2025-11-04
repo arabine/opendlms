@@ -359,10 +359,16 @@ const resetForm = () => {
 
 // Watch APRÈS la définition de resetForm
 watch(() => props.test, (newTest) => {
-  if (newTest) {
+  if (newTest && newTest._id) {
+    // Mode édition : test existant avec un _id
     isEditMode.value = true
     formData.value = { ...newTest }
+  } else if (newTest && !newTest._id) {
+    // Mode création avec template : test sans _id mais avec des valeurs pré-remplies
+    isEditMode.value = false
+    formData.value = { ...newTest }
   } else {
+    // Mode création vide
     isEditMode.value = false
     resetForm()
   }
@@ -386,6 +392,11 @@ const save = () => {
     formData.value.timestamp = new Date().toISOString()
   }
 
+  // Normaliser les chaînes vides en null pour parent, chapter, section
+  formData.value.parent = formData.value.parent || null
+  formData.value.chapter = formData.value.chapter || null
+  formData.value.section = formData.value.section || null
+
   // Créer les tableData si c'est un test-case
   if (formData.value.type === 'test-case') {
     formData.value.tableData = {
@@ -401,6 +412,8 @@ const save = () => {
       'Comment': formData.value.comment || ''
     }
   }
+
+  console.log('Saving test from modal:', formData.value)
 
   emit('save', formData.value as AtpTest)
   close()

@@ -1,31 +1,20 @@
 <template>
   <div class="flex flex-col h-screen">
-    <!-- En-tête avec upload et stats -->
+    <!-- En-tête avec stats et boutons -->
     <div class="flex-shrink-0 p-4 bg-gray-50 border-b border-gray-200">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <AtpFileUpload
-          :loading="loading"
-          @tests-updated="loadTests"
-        />
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <!-- Statistiques à gauche -->
+        <div v-if="tests.length > 0" class="flex items-center">
+          <AtpStats :stats="stats" />
+        </div>
+        <div v-else class="flex-1"></div>
 
-        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <AtpStats
-            v-if="tests.length > 0"
-            :stats="stats"
-            class="flex-shrink-0"
+        <!-- Boutons de chargement à droite -->
+        <div class="flex items-center">
+          <AtpFileUpload
+            :loading="loading"
+            @tests-updated="loadTests"
           />
-
-          <!-- Bouton d'ajout -->
-          <button
-            v-if="tests.length > 0"
-            @click="openAddModal"
-            class="flex-shrink-0 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Ajouter
-          </button>
         </div>
       </div>
     </div>
@@ -49,6 +38,7 @@
           @paste-node="handlePasteNode"
           @duplicate-node="handleDuplicateNode"
           @delete-node="handleDeleteNode"
+          @add-test="openAddModal"
         />
       </div>
 
@@ -193,7 +183,51 @@ const handleToggleTestCase = (id: string): void => {
 }
 
 const openAddModal = (): void => {
-  testToEdit.value = null
+  // Si un test est sélectionné, créer un template basé sur celui-ci
+  if (selectedTest.value) {
+    const selected = selectedTest.value
+    let parent: string | null = null
+    let chapter: string | null = null
+    let section: string | null = null
+    let defaultType: TestType = 'test-case' // Type par défaut
+
+    // Définir parent/chapter/type selon le type du noeud sélectionné
+    if (selected.type === 'chapter') {
+      // Si on sélectionne un chapitre, créer un test-case dedans par défaut
+      // (l'utilisateur peut changer en 'section' dans le modal s'il veut)
+      defaultType = 'test-case'
+      chapter = selected.number || null
+      parent = null
+    } else if (selected.type === 'section') {
+      // Si on sélectionne une section, créer un test-case dedans
+      defaultType = 'test-case'
+      parent = selected.number || null
+      chapter = selected.chapter || null
+    } else if (selected.type === 'procedure') {
+      // Si on sélectionne une procédure, créer une autre procédure
+      defaultType = 'procedure'
+      parent = null
+      chapter = null
+    } else if (selected.type === 'test-case') {
+      // Si on sélectionne un test case, créer un test case au même niveau
+      defaultType = 'test-case'
+      parent = selected.parent
+      chapter = selected.chapter
+      section = selected.section
+    }
+
+    testToEdit.value = {
+      _id: '',
+      type: defaultType,
+      title: '',
+      parent,
+      chapter,
+      section,
+      timestamp: new Date().toISOString()
+    } as AtpTest
+  } else {
+    testToEdit.value = null
+  }
   isEditModalOpen.value = true
 }
 
@@ -209,23 +243,105 @@ const closeEditModal = (): void => {
 
 const handleSaveTest = async (test: AtpTest): Promise<void> => {
   try {
-    if (testToEdit.value) {
+    // Mode édition uniquement si testToEdit a un _id valide (non vide)
+    const isEditMode = !!(testToEdit.value && testToEdit.value._id)
+
+    if (isEditMode) {
+      // Capturer l'état d'expansion avant le reload
+      const procedureExpandedState = captureExpandedState(procedureTree.value)
+      const testCaseExpandedState = captureExpandedState(testCaseTree.value)
+
       // Mise à jour
       await atpDatabaseService.updateTest(test)
       showNotification('success', 'Test mis à jour avec succès')
-      
+
       // Mettre à jour le test sélectionné si c'est celui en cours
       if (selectedTest.value?._id === test._id) {
         selectedTest.value = test
       }
+
+      // Fermer la modal et recharger
+      closeEditModal()
+      await loadTests()
+
+      // Restaurer l'état d'expansion
+      procedureTree.value = restoreExpandedState(procedureTree.value, procedureExpandedState)
+      testCaseTree.value = restoreExpandedState(testCaseTree.value, testCaseExpandedState)
     } else {
-      // Création
+      // Création d'un nouveau test
+
+      // Capturer l'état d'expansion avant le reload
+      const procedureExpandedState = captureExpandedState(procedureTree.value)
+      const testCaseExpandedState = captureExpandedState(testCaseTree.value)
+
+      // Calculer l'ordre basé sur le test sélectionné
+      if (selectedTest.value && selectedTest.value.type === test.type) {
+        // Si un test du même type est sélectionné, insérer après celui-ci
+        if (selectedTest.value.order !== undefined) {
+          test.order = selectedTest.value.order + 0.5
+        } else {
+          test.order = 1
+        }
+      } else {
+        // Sinon, ajouter à la fin de la liste du même type/parent/chapter
+        const sameTypeTests = tests.value.filter(t =>
+          t.type === test.type &&
+          t.parent === (test.parent || null) &&
+          t.chapter === (test.chapter || null)
+        )
+        const maxOrder = sameTypeTests.reduce((max, t) =>
+          Math.max(max, t.order || 0), -1
+        )
+        test.order = maxOrder + 1
+      }
+
+      console.log('Creating test:', {
+        _id: test._id,
+        type: test.type,
+        title: test.title,
+        number: test.number,
+        testId: test.testId,
+        parent: test.parent,
+        chapter: test.chapter,
+        order: test.order
+      })
+
       await atpDatabaseService.saveTest(test)
+      console.log('Test saved to database')
+
+      // Réorganiser les ordres si nécessaire
+      await reorderSiblings(test.parent || null, test.chapter || null, test.type)
+      console.log('Siblings reordered')
+
       showNotification('success', 'Test créé avec succès')
+
+      // Sauvegarder l'ID du nouveau test pour le sélectionner après le reload
+      const newTestId = test._id
+
+      // Fermer la modal
+      closeEditModal()
+
+      // Recharger les tests
+      await loadTests()
+
+      // Restaurer l'état d'expansion
+      procedureTree.value = restoreExpandedState(procedureTree.value, procedureExpandedState)
+      testCaseTree.value = restoreExpandedState(testCaseTree.value, testCaseExpandedState)
+
+      // Auto-expand jusqu'au nouveau test pour qu'il soit visible
+      if (test.type === 'procedure') {
+        // Les procédures sont déjà visibles (pas de hiérarchie)
+      } else {
+        // Pour les test cases, expand les parents
+        testCaseTree.value = expandToNode(testCaseTree.value, newTestId)
+      }
+
+      // Sélectionner automatiquement le nouveau test
+      const newTest = tests.value.find(t => t._id === newTestId)
+      if (newTest) {
+        selectedTest.value = newTest
+      }
     }
-    
-    // Recharger les tests
-    await loadTests()
   } catch (error) {
     console.error('Error saving test:', error)
     showNotification('error', 'Erreur lors de la sauvegarde du test')
@@ -234,16 +350,24 @@ const handleSaveTest = async (test: AtpTest): Promise<void> => {
 
 const handleDeleteTest = async (test: AtpTest): Promise<void> => {
   try {
+    // Capturer l'état d'expansion avant le reload
+    const procedureExpandedState = captureExpandedState(procedureTree.value)
+    const testCaseExpandedState = captureExpandedState(testCaseTree.value)
+
     await atpDatabaseService.deleteTest(test._id)
     showNotification('success', 'Test supprimé avec succès')
-    
+
     // Déselectionner si c'est le test en cours
     if (selectedTest.value?._id === test._id) {
       selectedTest.value = null
     }
-    
+
     // Recharger les tests
     await loadTests()
+
+    // Restaurer l'état d'expansion
+    procedureTree.value = restoreExpandedState(procedureTree.value, procedureExpandedState)
+    testCaseTree.value = restoreExpandedState(testCaseTree.value, testCaseExpandedState)
   } catch (error) {
     console.error('Error deleting test:', error)
     showNotification('error', 'Erreur lors de la suppression du test')
@@ -350,10 +474,20 @@ const reorderSiblings = async (
   chapter: string | null | undefined,
   type: TestType
 ): Promise<void> => {
+  // Normaliser les valeurs undefined en null pour les comparaisons
+  const normalizedParent = parent || null
+  const normalizedChapter = chapter || null
+
   // Trouver tous les éléments du même niveau
   const siblings = tests.value
-    .filter(t => t.parent === parent && t.chapter === chapter && t.type === type)
+    .filter(t =>
+      (t.parent || null) === normalizedParent &&
+      (t.chapter || null) === normalizedChapter &&
+      t.type === type
+    )
     .sort((a, b) => (a.order || 0) - (b.order || 0))
+
+  console.log(`Reordering ${siblings.length} siblings of type ${type}`, { parent: normalizedParent, chapter: normalizedChapter })
 
   // Réassigner des ordres séquentiels
   for (let i = 0; i < siblings.length; i++) {
@@ -391,9 +525,56 @@ const restoreExpandedState = (nodes: AtpTreeNode[], state: Map<string, boolean>)
   return nodes.map(restore)
 }
 
+// Auto-expand jusqu'à un nœud spécifique pour le rendre visible
+const expandToNode = (nodes: AtpTreeNode[], targetId: string): AtpTreeNode[] => {
+  const expand = (node: AtpTreeNode): { node: AtpTreeNode, found: boolean } => {
+    // Si c'est le nœud cible, on le retourne (pas besoin de l'expand lui-même)
+    if (node.id === targetId) {
+      return { node, found: true }
+    }
+
+    // Vérifier récursivement dans les enfants
+    let foundInChildren = false
+    const updatedChildren = node.children.map(child => {
+      const result = expand(child)
+      if (result.found) {
+        foundInChildren = true
+      }
+      return result.node
+    })
+
+    // Si trouvé dans un enfant, on expand ce nœud
+    if (foundInChildren) {
+      return {
+        node: {
+          ...node,
+          expanded: true,
+          children: updatedChildren
+        },
+        found: true
+      }
+    }
+
+    // Sinon, on retourne le nœud inchangé
+    return {
+      node: {
+        ...node,
+        children: updatedChildren
+      },
+      found: false
+    }
+  }
+
+  return nodes.map(node => expand(node).node)
+}
+
 // Gestion de la copie/colle
 const handlePasteNode = async (data: { copiedNode: AtpTreeNode, targetNode: AtpTreeNode }): Promise<void> => {
   try {
+    // Capturer l'état d'expansion avant le reload
+    const procedureExpandedState = captureExpandedState(procedureTree.value)
+    const testCaseExpandedState = captureExpandedState(testCaseTree.value)
+
     // Dupliquer le nœud copié
     const duplicatedNode = atpTreeService.duplicateNode(data.copiedNode)
 
@@ -410,6 +591,10 @@ const handlePasteNode = async (data: { copiedNode: AtpTreeNode, targetNode: AtpT
 
     // Recharger les tests
     await loadTests()
+
+    // Restaurer l'état d'expansion
+    procedureTree.value = restoreExpandedState(procedureTree.value, procedureExpandedState)
+    testCaseTree.value = restoreExpandedState(testCaseTree.value, testCaseExpandedState)
   } catch (error) {
     console.error('Error pasting node:', error)
     showNotification('error', 'Erreur lors du collage')
@@ -419,6 +604,10 @@ const handlePasteNode = async (data: { copiedNode: AtpTreeNode, targetNode: AtpT
 // Gestion de la duplication
 const handleDuplicateNode = async (node: AtpTreeNode): Promise<void> => {
   try {
+    // Capturer l'état d'expansion avant le reload
+    const procedureExpandedState = captureExpandedState(procedureTree.value)
+    const testCaseExpandedState = captureExpandedState(testCaseTree.value)
+
     // Dupliquer le nœud
     const duplicatedNode = atpTreeService.duplicateNode(node)
 
@@ -433,6 +622,10 @@ const handleDuplicateNode = async (node: AtpTreeNode): Promise<void> => {
 
     // Recharger les tests
     await loadTests()
+
+    // Restaurer l'état d'expansion
+    procedureTree.value = restoreExpandedState(procedureTree.value, procedureExpandedState)
+    testCaseTree.value = restoreExpandedState(testCaseTree.value, testCaseExpandedState)
   } catch (error) {
     console.error('Error duplicating node:', error)
     showNotification('error', 'Erreur lors de la duplication')
@@ -450,6 +643,10 @@ const handleDeleteNode = async (id: string): Promise<void> => {
       return
     }
 
+    // Capturer l'état d'expansion avant le reload
+    const procedureExpandedState = captureExpandedState(procedureTree.value)
+    const testCaseExpandedState = captureExpandedState(testCaseTree.value)
+
     // Supprimer le test et tous ses enfants
     await deleteNodeAndChildren(id)
 
@@ -462,6 +659,10 @@ const handleDeleteNode = async (id: string): Promise<void> => {
 
     // Recharger les tests
     await loadTests()
+
+    // Restaurer l'état d'expansion
+    procedureTree.value = restoreExpandedState(procedureTree.value, procedureExpandedState)
+    testCaseTree.value = restoreExpandedState(testCaseTree.value, testCaseExpandedState)
   } catch (error) {
     console.error('Error deleting node:', error)
     showNotification('error', 'Erreur lors de la suppression')

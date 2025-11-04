@@ -1,14 +1,25 @@
 <template>
   <div class="h-full flex flex-col">
-    <!-- Barre de recherche -->
+    <!-- Barre de recherche avec bouton Ajouter -->
     <div class="bg-white p-4 border-b border-gray-200">
-      <input
-        v-model="localSearchQuery"
-        type="text"
-        placeholder="Rechercher..."
-        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        @input="emitSearchChange"
-      />
+      <div class="flex gap-2">
+        <input
+          v-model="localSearchQuery"
+          type="text"
+          placeholder="Rechercher..."
+          class="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          @input="emitSearchChange"
+        />
+        <button
+          @click="emit('add-test')"
+          class="flex-shrink-0 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span class="hidden sm:inline">Ajouter</span>
+        </button>
+      </div>
     </div>
 
     <!-- Onglets -->
@@ -185,6 +196,7 @@ const emit = defineEmits<{
   (e: 'paste-node', data: { copiedNode: AtpTreeNode, targetNode: AtpTreeNode }): void
   (e: 'duplicate-node', node: AtpTreeNode): void
   (e: 'delete-node', id: string): void
+  (e: 'add-test'): void
 }>()
 
 const localSearchQuery = ref<string>(props.searchQuery)

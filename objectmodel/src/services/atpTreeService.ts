@@ -43,6 +43,60 @@ class AtpTreeService {
       this.createTestCaseNode(chapter, sections, testCases)
     )
 
+    // Trouver les sections orphelines (sans parent valide)
+    const usedSections = new Set<string>()
+    testCaseTree.forEach(chapterNode => {
+      chapterNode.children.forEach(child => {
+        if (child.test.type === 'section') {
+          usedSections.add(child.test._id)
+        }
+      })
+    })
+    const orphanSections = sections.filter(s => !usedSections.has(s._id)).sort(sortByOrder)
+
+    // Trouver les test cases orphelins (sans parent/chapter valide)
+    const usedTestCases = new Set<string>()
+    const collectUsedTestCases = (node: AtpTreeNode) => {
+      node.children.forEach(child => {
+        if (child.test.type === 'test-case') {
+          usedTestCases.add(child.test._id)
+        }
+        collectUsedTestCases(child)
+      })
+    }
+    testCaseTree.forEach(collectUsedTestCases)
+    const orphanTestCases = testCases.filter(t => !usedTestCases.has(t._id)).sort(sortByOrder)
+
+    // Ajouter les orphelins à la fin de l'arbre
+    orphanSections.forEach(section => {
+      testCaseTree.push({
+        id: section._id,
+        test: section,
+        children: [],
+        expanded: false
+      })
+    })
+    orphanTestCases.forEach(testCase => {
+      testCaseTree.push({
+        id: testCase._id,
+        test: testCase,
+        children: [],
+        expanded: false
+      })
+    })
+
+    // Log des statistiques de construction de l'arbre
+    console.log('Tree built:', {
+      procedures: procedures.length,
+      chapters: chapters.length,
+      sections: sections.length,
+      testCases: testCases.length,
+      orphanSections: orphanSections.length,
+      orphanTestCases: orphanTestCases.length,
+      procedureTreeNodes: procedureTree.length,
+      testCaseTreeNodes: testCaseTree.length
+    })
+
     return {
       procedureTree,
       testCaseTree,
