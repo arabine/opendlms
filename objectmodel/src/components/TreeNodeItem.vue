@@ -1,15 +1,32 @@
 <template>
-  <div>
+  <div class="relative">
+    <!-- Indicateur de drop au-dessus -->
+    <div
+      v-if="dropPosition === 'before'"
+      class="absolute left-0 right-0 h-0.5 bg-blue-500 z-10 -top-0.5"
+      style="pointer-events: none;"
+    >
+      <div class="absolute left-0 w-2 h-2 bg-blue-500 rounded-full -translate-x-1 -translate-y-0.5"></div>
+    </div>
+
     <!-- Le nœud lui-même -->
     <div
+      draggable="true"
       :style="{ paddingLeft: `${depth * 16}px` }"
       :class="[
-        'flex items-center gap-2 px-3 py-2 rounded cursor-pointer transition-colors duration-150',
+        'flex items-center gap-2 px-3 py-2 rounded cursor-pointer transition-colors duration-150 relative',
         selectedId === node.id
           ? getSelectedClasses(node.test.type)
-          : 'hover:bg-gray-100'
+          : 'hover:bg-gray-100',
+        dropPosition === 'inside' ? 'bg-blue-50 border border-blue-300' : ''
       ]"
       @click="handleClick"
+      @dragstart="handleDragStart"
+      @dragover.prevent="handleDragOver"
+      @dragleave="handleDragLeave"
+      @drop.prevent="handleDrop"
+      @dragend="handleDragEnd"
+      @contextmenu.prevent="handleContextMenu"
     >
       <!-- Icône expand/collapse -->
       <button
@@ -53,6 +70,15 @@
       </span>
     </div>
 
+    <!-- Indicateur de drop en-dessous -->
+    <div
+      v-if="dropPosition === 'after'"
+      class="absolute left-0 right-0 h-0.5 bg-blue-500 z-10 -bottom-0.5"
+      style="pointer-events: none;"
+    >
+      <div class="absolute left-0 w-2 h-2 bg-blue-500 rounded-full -translate-x-1 -translate-y-0.5"></div>
+    </div>
+
     <!-- Enfants (récursif) -->
     <div v-if="node.expanded && node.children.length > 0" class="mt-1">
       <TreeNodeItem
@@ -63,12 +89,16 @@
         :depth="depth + 1"
         @select="$emit('select', $event)"
         @toggle="$emit('toggle', $event)"
+        @drag-start="$emit('drag-start', $event)"
+        @drag-drop="$emit('drag-drop', $event)"
+        @context-menu="$emit('context-menu', $event)"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { AtpTreeNode, AtpTest, TestType } from '@/types'
 
 const props = defineProps<{
@@ -80,10 +110,96 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'select', test: AtpTest): void
   (e: 'toggle', id: string): void
+  (e: 'drag-start', data: { node: AtpTreeNode }): void
+  (e: 'drag-drop', data: { sourceId: string, targetId: string, position: 'before' | 'after' | 'inside' }): void
+  (e: 'context-menu', data: { node: AtpTreeNode, event: MouseEvent }): void
 }>()
+
+const dropPosition = ref<'before' | 'after' | 'inside' | null>(null)
+let dragLeaveTimeout: number | null = null
 
 const handleClick = () => {
   emit('select', props.node.test)
+}
+
+const handleDragStart = (event: DragEvent) => {
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', props.node.id)
+    emit('drag-start', { node: props.node })
+  }
+}
+
+const handleDragOver = (event: DragEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+
+  // Annuler le timeout de dragleave s'il existe
+  if (dragLeaveTimeout) {
+    clearTimeout(dragLeaveTimeout)
+    dragLeaveTimeout = null
+  }
+
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+
+  // Calculer la position relative dans l'élément
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  const y = event.clientY - rect.top
+  const height = rect.height
+
+  // Si le nœud a des enfants, on peut le mettre "inside"
+  // Sinon, on propose uniquement before/after
+  const canHaveChildren = props.node.test.type === 'chapter' || props.node.test.type === 'section'
+
+  if (canHaveChildren && y > height * 0.25 && y < height * 0.75) {
+    dropPosition.value = 'inside'
+  } else if (y <= height * 0.5) {
+    dropPosition.value = 'before'
+  } else {
+    dropPosition.value = 'after'
+  }
+}
+
+const handleDragLeave = (event: DragEvent) => {
+  // Utiliser un timeout pour éviter le clignotement lors du passage sur les enfants
+  dragLeaveTimeout = window.setTimeout(() => {
+    dropPosition.value = null
+  }, 50)
+}
+
+const handleDrop = (event: DragEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (dragLeaveTimeout) {
+    clearTimeout(dragLeaveTimeout)
+    dragLeaveTimeout = null
+  }
+
+  const position = dropPosition.value || 'inside'
+  dropPosition.value = null
+
+  if (event.dataTransfer) {
+    const sourceId = event.dataTransfer.getData('text/plain')
+    if (sourceId && sourceId !== props.node.id) {
+      emit('drag-drop', { sourceId, targetId: props.node.id, position })
+    }
+  }
+}
+
+const handleDragEnd = () => {
+  if (dragLeaveTimeout) {
+    clearTimeout(dragLeaveTimeout)
+    dragLeaveTimeout = null
+  }
+  dropPosition.value = null
+}
+
+const handleContextMenu = (event: MouseEvent) => {
+  emit('context-menu', { node: props.node, event })
 }
 
 const getIcon = (type: TestType): string => {

@@ -115,6 +115,7 @@ export interface AtpTest {
   parent?: string | null
   chapter?: string | null
   section?: string | null  // Section parente (pour procédures et test cases)
+  order?: number  // Ordre de l'élément dans sa liste (pour préserver l'ordre après drag & drop)
   timestamp: string
   _rev?: string
   // Données de tableau (si applicable)

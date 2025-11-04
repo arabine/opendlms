@@ -40,27 +40,55 @@
     </div>
 
     <!-- Contenu des onglets -->
-    <div class="flex-1 overflow-y-auto p-4">
+    <div class="flex-1 overflow-y-auto p-4" tabindex="0" @keydown="handleKeyDown">
       <!-- Onglet Procédures -->
       <div v-if="activeTab === 'procedures'">
         <div v-if="filteredProcedures.length > 0" class="space-y-1">
           <div
-            v-for="procedure in filteredProcedures"
+            v-for="(procedure, index) in filteredProcedures"
             :key="procedure.id"
-            @click="emitSelect(procedure.test)"
-            :class="[
-              'px-3 py-2 rounded cursor-pointer transition-colors duration-150',
-              'flex items-center gap-2',
-              selectedTest?._id === procedure.test._id
-                ? 'bg-blue-100 border-l-4 border-blue-600'
-                : 'hover:bg-gray-100'
-            ]"
+            class="relative"
           >
-            <span class="text-blue-600 text-sm">📋</span>
-            <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-gray-900 truncate">
-                {{ procedure.test.title }}
+            <!-- Indicateur de drop au-dessus -->
+            <div
+              v-if="procedureDropState[procedure.id] === 'before'"
+              class="absolute left-0 right-0 h-0.5 bg-blue-500 z-10 -top-0.5"
+              style="pointer-events: none;"
+            >
+              <div class="absolute left-0 w-2 h-2 bg-blue-500 rounded-full -translate-x-1 -translate-y-0.5"></div>
+            </div>
+
+            <div
+              @click="emitSelect(procedure.test)"
+              @contextmenu.prevent="handleContextMenu($event, procedure)"
+              draggable="true"
+              @dragstart="handleDragStart($event, procedure)"
+              @dragover.prevent="handleProcedureDragOver($event, procedure)"
+              @dragleave="handleProcedureDragLeave(procedure)"
+              @drop.prevent="handleProcedureDrop($event, procedure)"
+              :class="[
+                'px-3 py-2 rounded cursor-pointer transition-colors duration-150',
+                'flex items-center gap-2 relative',
+                selectedTest?._id === procedure.test._id
+                  ? 'bg-blue-100 border-l-4 border-blue-600'
+                  : 'hover:bg-gray-100'
+              ]"
+            >
+              <span class="text-blue-600 text-sm">📋</span>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-900 truncate">
+                  {{ procedure.test.title }}
+                </div>
               </div>
+            </div>
+
+            <!-- Indicateur de drop en-dessous -->
+            <div
+              v-if="procedureDropState[procedure.id] === 'after'"
+              class="absolute left-0 right-0 h-0.5 bg-blue-500 z-10 -bottom-0.5"
+              style="pointer-events: none;"
+            >
+              <div class="absolute left-0 w-2 h-2 bg-blue-500 rounded-full -translate-x-1 -translate-y-0.5"></div>
             </div>
           </div>
         </div>
@@ -80,6 +108,8 @@
             :depth="0"
             @select="emitSelect"
             @toggle="emitToggle"
+            @drag-drop="handleDragDrop"
+            @context-menu="handleTreeContextMenu"
           />
         </div>
         <div v-else class="text-center py-8 text-gray-500">
@@ -87,11 +117,51 @@
         </div>
       </div>
     </div>
+
+    <!-- Menu contextuel -->
+    <div
+      v-if="contextMenu.show"
+      :style="{
+        position: 'fixed',
+        top: contextMenu.y + 'px',
+        left: contextMenu.x + 'px',
+        zIndex: 1000
+      }"
+      class="bg-white shadow-lg rounded-md border border-gray-200 py-1 min-w-[160px]"
+      @click.stop
+    >
+      <button
+        @click="handleCopy"
+        class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+      >
+        <span>📋</span> Copier
+      </button>
+      <button
+        v-if="copiedNode"
+        @click="handlePaste"
+        class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+      >
+        <span>📄</span> Coller
+      </button>
+      <button
+        @click="handleDuplicate"
+        class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+      >
+        <span>🔄</span> Dupliquer
+      </button>
+      <hr class="my-1 border-gray-200" />
+      <button
+        @click="handleDelete"
+        class="w-full px-4 py-2 text-left text-sm hover:bg-red-100 text-red-600 flex items-center gap-2"
+      >
+        <span>🗑️</span> Supprimer
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { atpTreeService } from '@/services/atpTreeService'
 import type { AtpTreeNode, AtpTest } from '@/types'
 import TreeNodeItem from './TreeNodeItem.vue'
@@ -110,10 +180,24 @@ const emit = defineEmits<{
   (e: 'toggle-procedure', id: string): void
   (e: 'toggle-testcase', id: string): void
   (e: 'update-search', query: string): void
+  (e: 'move-node', data: { sourceId: string, targetId: string, position: 'before' | 'after' | 'inside', tab: 'procedures' | 'testcases' }): void
+  (e: 'copy-node', node: AtpTreeNode): void
+  (e: 'paste-node', data: { copiedNode: AtpTreeNode, targetNode: AtpTreeNode }): void
+  (e: 'duplicate-node', node: AtpTreeNode): void
+  (e: 'delete-node', id: string): void
 }>()
 
 const localSearchQuery = ref<string>(props.searchQuery)
 const activeTab = ref<'procedures' | 'testcases'>('procedures')
+const copiedNode = ref<AtpTreeNode | null>(null)
+const contextMenu = ref({
+  show: false,
+  x: 0,
+  y: 0,
+  node: null as AtpTreeNode | null
+})
+const draggedNode = ref<AtpTreeNode | null>(null)
+const procedureDropState = ref<Record<string, 'before' | 'after' | null>>({})
 
 const filteredProcedures = computed(() => {
   return atpTreeService.filterTree(props.procedureTree, localSearchQuery.value)
@@ -150,4 +234,178 @@ const emitToggle = (id: string) => {
 const emitSearchChange = () => {
   emit('update-search', localSearchQuery.value)
 }
+
+// Gestion du drag & drop
+const handleDragStart = (event: DragEvent, node: AtpTreeNode) => {
+  if (event.dataTransfer) {
+    draggedNode.value = node
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', node.id)
+  }
+}
+
+const handleProcedureDragOver = (event: DragEvent, targetNode: AtpTreeNode) => {
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+
+  // Calculer la position relative dans l'élément
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  const y = event.clientY - rect.top
+  const height = rect.height
+
+  // Pour les procédures, on propose uniquement before/after (pas inside)
+  if (y <= height * 0.5) {
+    procedureDropState.value[targetNode.id] = 'before'
+  } else {
+    procedureDropState.value[targetNode.id] = 'after'
+  }
+}
+
+const handleProcedureDragLeave = (targetNode: AtpTreeNode) => {
+  procedureDropState.value[targetNode.id] = null
+}
+
+const handleProcedureDrop = (event: DragEvent, targetNode: AtpTreeNode) => {
+  event.preventDefault()
+  event.stopPropagation()
+
+  const position = procedureDropState.value[targetNode.id] || 'after'
+  procedureDropState.value[targetNode.id] = null
+
+  if (draggedNode.value && draggedNode.value.id !== targetNode.id) {
+    emit('move-node', {
+      sourceId: draggedNode.value.id,
+      targetId: targetNode.id,
+      position,
+      tab: activeTab.value
+    })
+  }
+  draggedNode.value = null
+}
+
+const handleDrop = (event: DragEvent, targetNode: AtpTreeNode) => {
+  event.preventDefault()
+  if (draggedNode.value && draggedNode.value.id !== targetNode.id) {
+    emit('move-node', {
+      sourceId: draggedNode.value.id,
+      targetId: targetNode.id,
+      position: 'inside',
+      tab: activeTab.value
+    })
+  }
+  draggedNode.value = null
+}
+
+const handleDragDrop = (data: { sourceId: string, targetId: string, position: 'before' | 'after' | 'inside' }) => {
+  emit('move-node', {
+    sourceId: data.sourceId,
+    targetId: data.targetId,
+    position: data.position,
+    tab: activeTab.value
+  })
+}
+
+// Gestion du menu contextuel
+const handleContextMenu = (event: MouseEvent, node: AtpTreeNode) => {
+  event.preventDefault()
+  contextMenu.value = {
+    show: true,
+    x: event.clientX,
+    y: event.clientY,
+    node
+  }
+}
+
+const handleTreeContextMenu = (data: { node: AtpTreeNode, event: MouseEvent }) => {
+  handleContextMenu(data.event, data.node)
+}
+
+const closeContextMenu = () => {
+  contextMenu.value.show = false
+}
+
+// Actions du menu contextuel
+const handleCopy = () => {
+  if (contextMenu.value.node) {
+    copiedNode.value = contextMenu.value.node
+  }
+  closeContextMenu()
+}
+
+const handlePaste = () => {
+  if (copiedNode.value && contextMenu.value.node) {
+    emit('paste-node', {
+      copiedNode: copiedNode.value,
+      targetNode: contextMenu.value.node
+    })
+  }
+  closeContextMenu()
+}
+
+const handleDuplicate = () => {
+  if (contextMenu.value.node) {
+    emit('duplicate-node', contextMenu.value.node)
+  }
+  closeContextMenu()
+}
+
+const handleDelete = () => {
+  if (contextMenu.value.node) {
+    emit('delete-node', contextMenu.value.node.id)
+  }
+  closeContextMenu()
+}
+
+// Gestion des raccourcis clavier
+const handleKeyDown = (event: KeyboardEvent) => {
+  // Copier (Ctrl+C)
+  if (event.ctrlKey && event.key === 'c' && props.selectedTest) {
+    const node = activeTab.value === 'procedures'
+      ? atpTreeService.findNode(props.procedureTree, props.selectedTest._id)
+      : atpTreeService.findNode(props.testCaseTree, props.selectedTest._id)
+
+    if (node) {
+      copiedNode.value = node
+    }
+    event.preventDefault()
+  }
+
+  // Coller (Ctrl+V)
+  if (event.ctrlKey && event.key === 'v' && copiedNode.value && props.selectedTest) {
+    const targetNode = activeTab.value === 'procedures'
+      ? atpTreeService.findNode(props.procedureTree, props.selectedTest._id)
+      : atpTreeService.findNode(props.testCaseTree, props.selectedTest._id)
+
+    if (targetNode) {
+      emit('paste-node', targetNode)
+    }
+    event.preventDefault()
+  }
+
+  // Supprimer (Delete)
+  if (event.key === 'Delete' && props.selectedTest) {
+    emit('delete-node', props.selectedTest._id)
+    event.preventDefault()
+  }
+}
+
+// Fermer le menu contextuel quand on clique ailleurs
+const handleClickOutside = (event: MouseEvent) => {
+  if (contextMenu.value.show) {
+    closeContextMenu()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>

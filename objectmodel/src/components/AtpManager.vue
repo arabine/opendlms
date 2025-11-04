@@ -38,6 +38,10 @@
           @toggle-procedure="handleToggleProcedure"
           @toggle-testcase="handleToggleTestCase"
           @update-search="searchQuery = $event"
+          @move-node="handleMoveNode"
+          @paste-node="handlePasteNode"
+          @duplicate-node="handleDuplicateNode"
+          @delete-node="handleDeleteNode"
         />
       </div>
 
@@ -88,7 +92,7 @@ import AtpDetailView from './AtpDetailView.vue'
 import AtpEditModal from './AtpEditModal.vue'
 import { atpDatabaseService } from '@/services/atpDatabaseService'
 import { atpTreeService } from '@/services/atpTreeService'
-import type { AtpTest, AtpTestStats, AtpTreeNode } from '@/types'
+import type { AtpTest, AtpTestStats, AtpTreeNode, TestType } from '@/types'
 
 const loading = ref<boolean>(false)
 const tests = ref<AtpTest[]>([])
@@ -116,7 +120,10 @@ const loadTests = async (): Promise<void> => {
   try {
     loading.value = true
     tests.value = await atpDatabaseService.getAllTests()
-    
+
+    // Initialiser les ordres manquants
+    await initializeOrdersIfNeeded()
+
     // Construire les structures en arbre séparées
     const tree = atpTreeService.buildTree(tests.value)
     procedureTree.value = tree.procedureTree
@@ -128,6 +135,39 @@ const loadTests = async (): Promise<void> => {
     showNotification('error', 'Erreur lors du chargement des tests')
   } finally {
     loading.value = false
+  }
+}
+
+// Initialiser les ordres pour les tests qui n'en ont pas encore
+const initializeOrdersIfNeeded = async (): Promise<void> => {
+  // Grouper par parent/chapter/type
+  const groups = new Map<string, AtpTest[]>()
+
+  for (const test of tests.value) {
+    const key = `${test.type}:${test.parent || 'null'}:${test.chapter || 'null'}`
+    if (!groups.has(key)) {
+      groups.set(key, [])
+    }
+    groups.get(key)!.push(test)
+  }
+
+  // Assigner des ordres séquentiels si nécessaire
+  const testsToUpdate: AtpTest[] = []
+  for (const group of groups.values()) {
+    // Trier par title/testId pour avoir un ordre cohérent
+    group.sort((a, b) => (a.title || a.testId || '').localeCompare(b.title || b.testId || ''))
+
+    for (let i = 0; i < group.length; i++) {
+      if (group[i].order === undefined) {
+        group[i].order = i
+        testsToUpdate.push(group[i])
+      }
+    }
+  }
+
+  // Sauvegarder seulement les tests modifiés
+  for (const test of testsToUpdate) {
+    await atpDatabaseService.updateTest(test)
   }
 }
 
@@ -206,6 +246,245 @@ const showNotification = (type: 'success' | 'error', message: string): void => {
   setTimeout(() => {
     notification.value = null
   }, 3000)
+}
+
+// Gestion du drag & drop
+const handleMoveNode = async (data: {
+  sourceId: string,
+  targetId: string,
+  position: 'before' | 'after' | 'inside',
+  tab: 'procedures' | 'testcases'
+}): Promise<void> => {
+  try {
+    // Sauvegarder l'état d'expansion avant le déplacement
+    const expandedState = data.tab === 'procedures'
+      ? captureExpandedState(procedureTree.value)
+      : captureExpandedState(testCaseTree.value)
+
+    // Mettre à jour le parent et l'ordre dans la base de données
+    const sourceTest = tests.value.find(t => t._id === data.sourceId)
+    const targetTest = tests.value.find(t => t._id === data.targetId)
+
+    if (!sourceTest || !targetTest) {
+      showNotification('error', 'Tests introuvables')
+      return
+    }
+
+    // Déterminer le nouveau parent selon la position
+    let newParent: string | null | undefined
+    let newChapter: string | null | undefined
+
+    if (data.position === 'inside') {
+      newParent = targetTest.type === 'chapter' ? targetTest.number : targetTest.parent
+      newChapter = targetTest.chapter || targetTest.number
+    } else {
+      // Si before/after, on garde le même parent que la cible
+      newParent = targetTest.parent
+      newChapter = targetTest.chapter
+    }
+
+    // Trouver tous les éléments frères (même parent) dans la nouvelle position
+    const siblings = tests.value.filter(t =>
+      t._id !== data.sourceId &&
+      t.parent === newParent &&
+      t.chapter === newChapter &&
+      t.type === sourceTest.type
+    )
+
+    // Calculer le nouvel ordre
+    let newOrder: number
+
+    if (data.position === 'before') {
+      // Insérer avant la cible
+      newOrder = targetTest.order !== undefined ? targetTest.order - 0.5 : 0
+    } else if (data.position === 'after') {
+      // Insérer après la cible
+      newOrder = targetTest.order !== undefined ? targetTest.order + 0.5 : siblings.length
+    } else {
+      // Insérer comme dernier enfant
+      const childrenOrders = tests.value
+        .filter(t => t.parent === newParent && t.chapter === newChapter && t.type === sourceTest.type)
+        .map(t => t.order || 0)
+      newOrder = childrenOrders.length > 0 ? Math.max(...childrenOrders) + 1 : 0
+    }
+
+    // Mettre à jour la source
+    sourceTest.parent = newParent
+    sourceTest.chapter = newChapter
+    sourceTest.order = newOrder
+
+    await atpDatabaseService.updateTest(sourceTest)
+
+    // Réorganiser tous les ordres pour avoir des valeurs entières séquentielles
+    await reorderSiblings(newParent, newChapter, sourceTest.type)
+
+    showNotification('success', 'Élément déplacé avec succès')
+
+    // Recharger les tests pour synchroniser
+    await loadTests()
+
+    // Restaurer l'état d'expansion
+    if (data.tab === 'procedures') {
+      procedureTree.value = restoreExpandedState(procedureTree.value, expandedState)
+    } else {
+      testCaseTree.value = restoreExpandedState(testCaseTree.value, expandedState)
+    }
+  } catch (error) {
+    console.error('Error moving node:', error)
+    showNotification('error', 'Erreur lors du déplacement')
+  }
+}
+
+// Réorganiser les ordres d'un groupe de frères pour avoir des valeurs entières séquentielles
+const reorderSiblings = async (
+  parent: string | null | undefined,
+  chapter: string | null | undefined,
+  type: TestType
+): Promise<void> => {
+  // Trouver tous les éléments du même niveau
+  const siblings = tests.value
+    .filter(t => t.parent === parent && t.chapter === chapter && t.type === type)
+    .sort((a, b) => (a.order || 0) - (b.order || 0))
+
+  // Réassigner des ordres séquentiels
+  for (let i = 0; i < siblings.length; i++) {
+    if (siblings[i].order !== i) {
+      siblings[i].order = i
+      await atpDatabaseService.updateTest(siblings[i])
+    }
+  }
+}
+
+// Capturer l'état d'expansion de tous les nœuds
+const captureExpandedState = (nodes: AtpTreeNode[]): Map<string, boolean> => {
+  const state = new Map<string, boolean>()
+
+  const capture = (node: AtpTreeNode) => {
+    state.set(node.id, node.expanded)
+    node.children.forEach(capture)
+  }
+
+  nodes.forEach(capture)
+  return state
+}
+
+// Restaurer l'état d'expansion de tous les nœuds
+const restoreExpandedState = (nodes: AtpTreeNode[], state: Map<string, boolean>): AtpTreeNode[] => {
+  const restore = (node: AtpTreeNode): AtpTreeNode => {
+    const expanded = state.get(node.id) ?? node.expanded
+    return {
+      ...node,
+      expanded,
+      children: node.children.map(restore)
+    }
+  }
+
+  return nodes.map(restore)
+}
+
+// Gestion de la copie/colle
+const handlePasteNode = async (data: { copiedNode: AtpTreeNode, targetNode: AtpTreeNode }): Promise<void> => {
+  try {
+    // Dupliquer le nœud copié
+    const duplicatedNode = atpTreeService.duplicateNode(data.copiedNode)
+
+    // Mettre à jour les relations parent/enfant
+    duplicatedNode.test.parent = data.targetNode.test.type === 'chapter'
+      ? data.targetNode.test.number
+      : data.targetNode.test.parent
+    duplicatedNode.test.chapter = data.targetNode.test.chapter || data.targetNode.test.number
+
+    // Sauvegarder dans la base de données (le nœud et ses enfants)
+    await saveNodeAndChildren(duplicatedNode)
+
+    showNotification('success', 'Élément collé avec succès')
+
+    // Recharger les tests
+    await loadTests()
+  } catch (error) {
+    console.error('Error pasting node:', error)
+    showNotification('error', 'Erreur lors du collage')
+  }
+}
+
+// Gestion de la duplication
+const handleDuplicateNode = async (node: AtpTreeNode): Promise<void> => {
+  try {
+    // Dupliquer le nœud
+    const duplicatedNode = atpTreeService.duplicateNode(node)
+
+    // Conserver les mêmes relations parent/enfant que l'original
+    duplicatedNode.test.parent = node.test.parent
+    duplicatedNode.test.chapter = node.test.chapter
+
+    // Sauvegarder dans la base de données (le nœud et ses enfants)
+    await saveNodeAndChildren(duplicatedNode)
+
+    showNotification('success', 'Élément dupliqué avec succès')
+
+    // Recharger les tests
+    await loadTests()
+  } catch (error) {
+    console.error('Error duplicating node:', error)
+    showNotification('error', 'Erreur lors de la duplication')
+  }
+}
+
+// Gestion de la suppression via menu contextuel
+const handleDeleteNode = async (id: string): Promise<void> => {
+  try {
+    const test = tests.value.find(t => t._id === id)
+    if (!test) return
+
+    // Confirmer avant suppression
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${test.title}" ?`)) {
+      return
+    }
+
+    // Supprimer le test et tous ses enfants
+    await deleteNodeAndChildren(id)
+
+    showNotification('success', 'Élément supprimé avec succès')
+
+    // Déselectionner si c'est le test en cours
+    if (selectedTest.value?._id === id) {
+      selectedTest.value = null
+    }
+
+    // Recharger les tests
+    await loadTests()
+  } catch (error) {
+    console.error('Error deleting node:', error)
+    showNotification('error', 'Erreur lors de la suppression')
+  }
+}
+
+// Fonction auxiliaire pour sauvegarder un nœud et tous ses enfants
+const saveNodeAndChildren = async (node: AtpTreeNode): Promise<void> => {
+  // Sauvegarder le nœud
+  await atpDatabaseService.saveTest(node.test)
+
+  // Sauvegarder récursivement tous les enfants
+  for (const child of node.children) {
+    await saveNodeAndChildren(child)
+  }
+}
+
+// Fonction auxiliaire pour supprimer un nœud et tous ses enfants
+const deleteNodeAndChildren = async (id: string): Promise<void> => {
+  // Trouver le nœud dans l'arbre
+  const node = atpTreeService.findNode(procedureTree.value, id) ||
+               atpTreeService.findNode(testCaseTree.value, id)
+
+  if (!node) return
+
+  // Supprimer récursivement tous les enfants
+  for (const child of node.children) {
+    await deleteNodeAndChildren(child.id)
+  }
+
+  // Supprimer le nœud lui-même
+  await atpDatabaseService.deleteTest(id)
 }
 
 onMounted(() => {

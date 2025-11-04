@@ -5,8 +5,8 @@ class AtpTreeService {
    * Organiser les tests en structure d'arbre hiérarchique
    * Sépare les procédures et les test cases en deux arbres distincts
    */
-  buildTree(tests: AtpTest[]): { 
-    procedureTree: AtpTreeNode[], 
+  buildTree(tests: AtpTest[]): {
+    procedureTree: AtpTreeNode[],
     testCaseTree: AtpTreeNode[],
     procedures: AtpTest[],
     testCases: AtpTest[]
@@ -16,24 +16,37 @@ class AtpTreeService {
     const testCases = tests.filter(t => t.type === 'test-case')
     const chapters = tests.filter(t => t.type === 'chapter')
     const sections = tests.filter(t => t.type === 'section')
-    
+
+    // Trier par order (ou par défaut alphabétiquement si pas d'order)
+    const sortByOrder = (a: AtpTest, b: AtpTest) => {
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order
+      }
+      if (a.order !== undefined) return -1
+      if (b.order !== undefined) return 1
+      return (a.title || '').localeCompare(b.title || '')
+    }
+
+    const sortedProcedures = [...procedures].sort(sortByOrder)
+    const sortedChapters = [...chapters].sort(sortByOrder)
+
     // Construire l'arbre des procédures (plat, juste une liste)
-    const procedureTree: AtpTreeNode[] = procedures.map(proc => ({
+    const procedureTree: AtpTreeNode[] = sortedProcedures.map(proc => ({
       id: proc._id,
       test: proc,
       children: [],
       expanded: false
     }))
-    
+
     // Construire l'arbre des test cases (hiérarchique avec chapitres/sections)
-    const testCaseTree: AtpTreeNode[] = chapters.map(chapter => 
+    const testCaseTree: AtpTreeNode[] = sortedChapters.map(chapter =>
       this.createTestCaseNode(chapter, sections, testCases)
     )
 
-    return { 
-      procedureTree, 
+    return {
+      procedureTree,
       testCaseTree,
-      procedures: procedures.sort((a, b) => (a.title || '').localeCompare(b.title || '')),
+      procedures: sortedProcedures,
       testCases: testCases.sort((a, b) => (a.testId || '').localeCompare(b.testId || ''))
     }
   }
@@ -42,8 +55,8 @@ class AtpTreeService {
    * Créer un nœud d'arbre pour les test cases (structure hiérarchique)
    */
   private createTestCaseNode(
-    chapter: AtpTest, 
-    allSections: AtpTest[], 
+    chapter: AtpTest,
+    allSections: AtpTest[],
     allTestCases: AtpTest[]
   ): AtpTreeNode {
     const node: AtpTreeNode = {
@@ -53,13 +66,25 @@ class AtpTreeService {
       expanded: false
     }
 
+    // Fonction de tri par order
+    const sortByOrder = (a: AtpTest, b: AtpTest) => {
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order
+      }
+      if (a.order !== undefined) return -1
+      if (b.order !== undefined) return 1
+      return (a.title || a.testId || '').localeCompare(b.title || b.testId || '')
+    }
+
     // Trouver les sections qui appartiennent à ce chapitre
-    const chapterSections = allSections.filter(s => s.parent === chapter.number)
-    
+    const chapterSections = allSections
+      .filter(s => s.parent === chapter.number)
+      .sort(sortByOrder)
+
     // Trouver les tests qui appartiennent directement à ce chapitre
-    const directTests = allTestCases.filter(t => 
-      t.chapter === chapter.number && !t.parent
-    )
+    const directTests = allTestCases
+      .filter(t => t.chapter === chapter.number && !t.parent)
+      .sort(sortByOrder)
 
     // Créer les nœuds pour les sections
     node.children = chapterSections.map(section => {
@@ -69,16 +94,18 @@ class AtpTreeService {
         children: [],
         expanded: false
       }
-      
+
       // Ajouter les tests de cette section
-      const sectionTests = allTestCases.filter(t => t.parent === section.number)
+      const sectionTests = allTestCases
+        .filter(t => t.parent === section.number)
+        .sort(sortByOrder)
       sectionNode.children = sectionTests.map(t => ({
         id: t._id,
         test: t,
         children: [],
         expanded: false
       }))
-      
+
       return sectionNode
     })
 
@@ -164,6 +191,165 @@ class AtpTreeService {
     if (!query) return procedures
     const lowerQuery = query.toLowerCase()
     return procedures.filter(proc => this.testMatchesQuery(proc, lowerQuery))
+  }
+
+  /**
+   * Déplacer un nœud dans l'arbre (drag & drop)
+   */
+  moveNode(
+    nodes: AtpTreeNode[],
+    sourceId: string,
+    targetId: string,
+    position: 'before' | 'after' | 'inside' = 'inside'
+  ): AtpTreeNode[] {
+    // Trouver les nœuds source et target
+    const sourceNode = this.findNode(nodes, sourceId)
+    const targetNode = this.findNode(nodes, targetId)
+
+    if (!sourceNode || !targetNode || sourceId === targetId) {
+      return nodes
+    }
+
+    // Vérifier que la source n'est pas un parent de la cible (éviter les boucles)
+    if (this.isAncestor(sourceNode, targetId)) {
+      return nodes
+    }
+
+    // Retirer le nœud source de sa position actuelle
+    const nodesWithoutSource = this.removeNode(nodes, sourceId)
+
+    // Ajouter le nœud selon la position
+    let updatedNodes: AtpTreeNode[]
+    if (position === 'inside') {
+      updatedNodes = this.addNodeAsChild(nodesWithoutSource, sourceNode, targetId)
+    } else if (position === 'before') {
+      updatedNodes = this.insertNodeBefore(nodesWithoutSource, sourceNode, targetId)
+    } else {
+      updatedNodes = this.insertNodeAfter(nodesWithoutSource, sourceNode, targetId)
+    }
+
+    return updatedNodes
+  }
+
+  /**
+   * Vérifier si un nœud est l'ancêtre d'un autre
+   */
+  private isAncestor(node: AtpTreeNode, targetId: string): boolean {
+    if (node.id === targetId) return true
+
+    for (const child of node.children) {
+      if (this.isAncestor(child, targetId)) return true
+    }
+
+    return false
+  }
+
+  /**
+   * Retirer un nœud de l'arbre
+   */
+  private removeNode(nodes: AtpTreeNode[], id: string): AtpTreeNode[] {
+    return nodes
+      .filter(node => node.id !== id)
+      .map(node => ({
+        ...node,
+        children: this.removeNode(node.children, id)
+      }))
+  }
+
+  /**
+   * Ajouter un nœud comme enfant d'un autre nœud
+   */
+  private addNodeAsChild(nodes: AtpTreeNode[], nodeToAdd: AtpTreeNode, targetId: string): AtpTreeNode[] {
+    return nodes.map(node => {
+      if (node.id === targetId) {
+        return {
+          ...node,
+          children: [...node.children, { ...nodeToAdd }],
+          expanded: node.expanded || true // Garder l'état expanded ou l'ouvrir si fermé
+        }
+      }
+      return {
+        ...node,
+        children: this.addNodeAsChild(node.children, nodeToAdd, targetId)
+      }
+    })
+  }
+
+  /**
+   * Insérer un nœud avant un autre nœud
+   */
+  private insertNodeBefore(nodes: AtpTreeNode[], nodeToAdd: AtpTreeNode, targetId: string): AtpTreeNode[] {
+    const result: AtpTreeNode[] = []
+
+    for (const node of nodes) {
+      if (node.id === targetId) {
+        // Insérer le nouveau nœud avant le nœud cible
+        result.push({ ...nodeToAdd })
+        result.push(node)
+      } else {
+        // Vérifier récursivement dans les enfants
+        const updatedChildren = this.insertNodeBefore(node.children, nodeToAdd, targetId)
+        if (updatedChildren !== node.children) {
+          result.push({ ...node, children: updatedChildren })
+        } else {
+          result.push(node)
+        }
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * Insérer un nœud après un autre nœud
+   */
+  private insertNodeAfter(nodes: AtpTreeNode[], nodeToAdd: AtpTreeNode, targetId: string): AtpTreeNode[] {
+    const result: AtpTreeNode[] = []
+
+    for (const node of nodes) {
+      if (node.id === targetId) {
+        // Insérer le nœud cible puis le nouveau nœud
+        result.push(node)
+        result.push({ ...nodeToAdd })
+      } else {
+        // Vérifier récursivement dans les enfants
+        const updatedChildren = this.insertNodeAfter(node.children, nodeToAdd, targetId)
+        if (updatedChildren !== node.children) {
+          result.push({ ...node, children: updatedChildren })
+        } else {
+          result.push(node)
+        }
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * Dupliquer un nœud (copie)
+   */
+  duplicateNode(node: AtpTreeNode): AtpTreeNode {
+    const timestamp = Date.now()
+    const newTest = {
+      ...node.test,
+      _id: `${node.test.type}_${timestamp}_copy`,
+      title: `${node.test.title} (copie)`,
+      timestamp: new Date().toISOString()
+    }
+
+    return {
+      id: newTest._id,
+      test: newTest,
+      children: node.children.map(child => this.duplicateNode(child)),
+      expanded: false
+    }
+  }
+
+  /**
+   * Ajouter un nœud à la racine d'un arbre
+   */
+  addNodeToRoot(nodes: AtpTreeNode[], node: AtpTreeNode): AtpTreeNode[] {
+    return [...nodes, node]
   }
 }
 
