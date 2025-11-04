@@ -1,28 +1,32 @@
 <template>
-  <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-white shadow-lg">
-      <div class="text-3xl font-bold">{{ stats.total }}</div>
-      <div class="text-sm opacity-90 mt-1">Total éléments</div>
+  <div class="flex flex-wrap items-center gap-2">
+    <div class="flex items-center gap-1.5 px-2 py-1 bg-purple-100 rounded-md">
+      <span class="text-base sm:text-lg font-bold text-purple-700">{{ stats.total }}</span>
+      <span class="text-xs text-purple-600 hidden sm:inline">Total</span>
     </div>
-    
-    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 text-white shadow-lg">
-      <div class="text-3xl font-bold">{{ stats.chapters }}</div>
-      <div class="text-sm opacity-90 mt-1">Chapitres</div>
+
+    <div class="flex items-center gap-1.5 px-2 py-1 bg-green-100 rounded-md">
+      <span class="text-base sm:text-lg font-bold text-green-700">{{ stats.chapters }}</span>
+      <span class="text-xs text-green-600 hidden sm:inline">Chapters</span>
+      <span class="text-xs text-green-600 sm:hidden">Ch</span>
     </div>
-    
-    <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-4 text-white shadow-lg">
-      <div class="text-3xl font-bold">{{ stats.sections }}</div>
-      <div class="text-sm opacity-90 mt-1">Sections</div>
+
+    <div class="flex items-center gap-1.5 px-2 py-1 bg-yellow-100 rounded-md">
+      <span class="text-base sm:text-lg font-bold text-yellow-700">{{ stats.sections }}</span>
+      <span class="text-xs text-yellow-600 hidden sm:inline">Sections</span>
+      <span class="text-xs text-yellow-600 sm:hidden">Sec</span>
     </div>
-    
-    <div class="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg p-4 text-white shadow-lg">
-      <div class="text-3xl font-bold">{{ stats.procedures }}</div>
-      <div class="text-sm opacity-90 mt-1">Procédures</div>
+
+    <div class="flex items-center gap-1.5 px-2 py-1 bg-cyan-100 rounded-md">
+      <span class="text-base sm:text-lg font-bold text-cyan-700">{{ stats.procedures }}</span>
+      <span class="text-xs text-cyan-600 hidden sm:inline">Proc.</span>
+      <span class="text-xs text-cyan-600 sm:hidden">P</span>
     </div>
-    
-    <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-4 text-white shadow-lg">
-      <div class="text-3xl font-bold">{{ stats.tests }}</div>
-      <div class="text-sm opacity-90 mt-1">Cas de test</div>
+
+    <div class="flex items-center gap-1.5 px-2 py-1 bg-red-100 rounded-md">
+      <span class="text-base sm:text-lg font-bold text-red-700">{{ stats.tests }}</span>
+      <span class="text-xs text-red-600 hidden sm:inline">Tests</span>
+      <span class="text-xs text-red-600 sm:hidden">T</span>
     </div>
   </div>
 </template>
