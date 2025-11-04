@@ -67,6 +67,27 @@
         <span class="hidden sm:inline">{{ parsing ? 'Parsing...' : 'Parser' }}</span>
       </button>
 
+      <!-- Bouton Import JSON -->
+      <label
+        for="json-import-input"
+        class="cursor-pointer bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 inline-flex items-center text-sm whitespace-nowrap"
+        :class="{ 'opacity-50 cursor-not-allowed': loading }"
+      >
+        <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <span class="hidden sm:inline">Import JSON</span>
+        <span class="sm:hidden">JSON</span>
+      </label>
+      <input
+        id="json-import-input"
+        type="file"
+        accept=".json"
+        class="hidden"
+        :disabled="loading"
+        @change="handleJsonImport"
+      />
+
       <button
         @click="exportData"
         class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 inline-flex items-center text-sm whitespace-nowrap"
@@ -271,7 +292,7 @@ const clearDatabase = async (): Promise<void> => {
     await atpDatabaseService.clearDatabase()
     message.value = { type: 'success', text: '✅ Base de données effacée' }
     emit('tests-updated')
-    
+
     setTimeout(() => {
       message.value = null
     }, 3000)
@@ -280,6 +301,99 @@ const clearDatabase = async (): Promise<void> => {
       type: 'error',
       text: `❌ Erreur lors de l'effacement: ${error instanceof Error ? error.message : String(error)}`
     }
+  }
+}
+
+const handleJsonImport = async (event: Event): Promise<void> => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+
+  if (!file) return
+
+  try {
+    message.value = { type: 'info', text: 'Lecture du fichier JSON...' }
+
+    // Lire le fichier
+    const text = await file.text()
+    const importedData = JSON.parse(text)
+
+    // Vérifier le format
+    if (!Array.isArray(importedData)) {
+      throw new Error('Le fichier JSON doit contenir un tableau de tests')
+    }
+
+    console.log(`Import JSON: ${importedData.length} tests trouvés dans le fichier`)
+
+    // Récupérer les tests existants
+    const existingTests = await atpDatabaseService.getAllTests()
+    const existingIds = new Set(existingTests.map(t => t._id))
+
+    console.log(`Import JSON: ${existingTests.length} tests déjà dans la base`)
+
+    // Filtrer pour ne garder que les nouveaux tests et nettoyer les champs PouchDB
+    const newTests = importedData
+      .filter(test => {
+        if (!test._id) {
+          console.warn('Test sans _id ignoré:', test)
+          return false
+        }
+        return !existingIds.has(test._id)
+      })
+      .map(test => {
+        // Créer une copie sans les champs internes PouchDB
+        const { _rev, ...cleanTest } = test
+        return cleanTest
+      })
+
+    console.log(`Import JSON: ${newTests.length} nouveaux tests à importer`)
+
+    if (newTests.length === 0) {
+      message.value = { type: 'info', text: 'ℹ️ Aucun nouveau test à importer (tous existent déjà)' }
+      setTimeout(() => {
+        message.value = null
+      }, 3000)
+      return
+    }
+
+    message.value = { type: 'info', text: `Importation de ${newTests.length} nouveaux tests...` }
+
+    // Importer les nouveaux tests
+    const imported = await atpDatabaseService.saveTests(newTests)
+    console.log(`Import JSON: ${imported} tests effectivement importés`)
+
+    // Compter les types
+    const stats = newTests.reduce((acc, test) => {
+      acc[test.type] = (acc[test.type] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    const statsText = Object.entries(stats)
+      .map(([type, count]) => `${count} ${type}`)
+      .join(', ')
+
+    message.value = {
+      type: 'success',
+      text: `✅ ${imported} nouveaux tests importés! (${statsText}). ${importedData.length - newTests.length} existants ignorés.`
+    }
+
+    emit('tests-updated')
+
+    // Effacer le message après 5 secondes
+    setTimeout(() => {
+      message.value = null
+    }, 5000)
+
+    // Réinitialiser l'input file
+    target.value = ''
+  } catch (error) {
+    message.value = {
+      type: 'error',
+      text: `❌ Erreur lors de l'import: ${error instanceof Error ? error.message : String(error)}`
+    }
+    console.error('Error importing JSON:', error)
+
+    // Réinitialiser l'input file
+    target.value = ''
   }
 }
 </script>

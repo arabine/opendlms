@@ -25,8 +25,19 @@ class AtpDatabaseService {
    */
   async saveTests(tests: AtpTest[]): Promise<number> {
     try {
+      console.log(`Tentative de sauvegarde de ${tests.length} tests`)
       const results = await this.db.bulkDocs(tests)
-      return results.filter(r => (r as any).ok).length
+
+      // Compter les succès et les erreurs
+      const successes = results.filter((r: any) => r.ok)
+      const errors = results.filter((r: any) => r.error)
+
+      if (errors.length > 0) {
+        console.warn(`${errors.length} tests n'ont pas pu être sauvegardés:`, errors)
+      }
+
+      console.log(`${successes.length} tests sauvegardés avec succès`)
+      return successes.length
     } catch (error) {
       console.error('Error saving tests:', error)
       throw error
@@ -39,7 +50,7 @@ class AtpDatabaseService {
   async getAllTests(): Promise<AtpTest[]> {
     try {
       const result = await this.db.allDocs<AtpTest>({ include_docs: true })
-      return result.rows.map(row => row.doc!).filter(doc => doc !== undefined)
+      return result.rows.map((row: any) => row.doc!).filter((doc: any) => doc !== undefined)
     } catch (error) {
       console.error('Error getting tests:', error)
       throw error
@@ -99,7 +110,7 @@ class AtpDatabaseService {
   async clearDatabase(): Promise<void> {
     try {
       const result = await this.db.allDocs()
-      const docs = result.rows.map(row => ({
+      const docs = result.rows.map((row: any) => ({
         _id: row.id,
         _rev: row.value.rev,
         _deleted: true
