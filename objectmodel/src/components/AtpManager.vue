@@ -106,12 +106,18 @@ const testToEdit = ref<AtpTest | null>(null)
 const notification = ref<{ type: 'success' | 'error', message: string } | null>(null)
 
 const stats = computed<AtpTestStats>(() => {
+  // Compter les test-cases et procédures validés
+  const validatedTestCases = testCases.value.filter(t => t.validated === true)
+  const validatedProcedures = procedures.value.filter(p => p.validated === true)
+
   return {
     total: tests.value.length,
     chapters: tests.value.filter(t => t.type === 'chapter').length,
     sections: tests.value.filter(t => t.type === 'section').length,
     procedures: procedures.value.length,
-    tests: testCases.value.length
+    tests: testCases.value.length,
+    validatedTests: validatedTestCases.length,
+    validatedProcedures: validatedProcedures.length
   }
 })
 

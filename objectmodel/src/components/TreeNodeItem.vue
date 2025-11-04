@@ -61,9 +61,53 @@
         </div>
       </div>
 
-      <!-- Badge du nombre d'enfants -->
+      <!-- Badge de validation pour test-case et procedure -->
+      <div
+        v-if="node.test.type === 'test-case' || node.test.type === 'procedure'"
+        :class="[
+          'flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center',
+          node.test.validated ? 'bg-green-500' : 'bg-gray-300'
+        ]"
+        :title="node.test.validated ? 'Validé' : 'Non validé'"
+      >
+        <svg
+          v-if="node.test.validated"
+          class="w-4 h-4 text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+        </svg>
+        <svg
+          v-else
+          class="w-3 h-3 text-gray-500"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </div>
+
+      <!-- Indicateur de validation pour les chapitres -->
+      <div
+        v-else-if="node.test.type === 'chapter' && validationStats"
+        :class="[
+          'flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-xs font-bold',
+          validationColor
+        ]"
+        :title="`${validationStats.validated} validé(s) sur ${validationStats.total} test(s)`"
+      >
+        <div class="text-center leading-tight">
+          <div>{{ validationStats.validated }}</div>
+          <div class="text-[10px]">/{{ validationStats.total }}</div>
+        </div>
+      </div>
+
+      <!-- Badge du nombre d'enfants pour les autres types -->
       <span
-        v-if="node.children.length > 0"
+        v-else-if="node.children.length > 0"
         class="flex-shrink-0 px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-700"
       >
         {{ node.children.length }}
@@ -98,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { AtpTreeNode, AtpTest, TestType } from '@/types'
 
 const props = defineProps<{
@@ -117,6 +161,48 @@ const emit = defineEmits<{
 
 const dropPosition = ref<'before' | 'after' | 'inside' | null>(null)
 let dragLeaveTimeout: number | null = null
+
+// Calculer les statistiques de validation pour un noeud et tous ses descendants
+const getValidationStats = (node: AtpTreeNode): { validated: number, total: number } => {
+  let validated = 0
+  let total = 0
+
+  // Fonction récursive pour compter seulement les test-cases (pas les procédures)
+  const countValidatable = (n: AtpTreeNode) => {
+    // Compter ce noeud s'il est un test-case uniquement
+    if (n.test.type === 'test-case') {
+      total++
+      if (n.test.validated) {
+        validated++
+      }
+    }
+
+    // Parcourir les enfants
+    n.children.forEach(child => countValidatable(child))
+  }
+
+  countValidatable(node)
+  return { validated, total }
+}
+
+// Stats de validation pour ce noeud
+const validationStats = computed(() => {
+  if (props.node.test.type === 'chapter') {
+    return getValidationStats(props.node)
+  }
+  return null
+})
+
+// Couleur de l'indicateur de validation
+const validationColor = computed(() => {
+  if (!validationStats.value) return ''
+
+  const { validated, total } = validationStats.value
+  if (total === 0) return 'bg-gray-200 text-gray-700'
+  if (validated === 0) return 'bg-red-500 text-white'
+  if (validated === total) return 'bg-green-500 text-white'
+  return 'bg-orange-500 text-white'
+})
 
 const handleClick = () => {
   emit('select', props.node.test)

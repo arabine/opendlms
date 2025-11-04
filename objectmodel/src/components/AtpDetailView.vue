@@ -24,6 +24,23 @@
         </div>
 
         <div class="flex gap-2">
+          <!-- Bouton Valider (toujours visible pour procédures et test-cases) -->
+          <button
+            v-if="test.type === 'test-case' || test.type === 'procedure'"
+            @click="toggleValidation"
+            :class="[
+              'px-3 py-2 text-sm rounded-md transition-colors flex items-center gap-2',
+              test.validated
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-gray-400 hover:bg-gray-500 text-white'
+            ]"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ test.validated ? 'Validé' : 'Valider' }}
+          </button>
+
           <button
             v-if="!isEditing"
             @click="startEditing"
@@ -540,5 +557,16 @@ const exportTest = () => {
   a.click()
 
   URL.revokeObjectURL(url)
+}
+
+const toggleValidation = () => {
+  if (!props.test) return
+
+  const updatedTest: AtpTest = {
+    ...props.test,
+    validated: !props.test.validated
+  }
+
+  emit('update', updatedTest)
 }
 </script>

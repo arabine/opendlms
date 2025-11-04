@@ -116,6 +116,7 @@ export interface AtpTest {
   chapter?: string | null
   section?: string | null  // Section parente (pour procédures et test cases)
   order?: number  // Ordre de l'élément dans sa liste (pour préserver l'ordre après drag & drop)
+  validated?: boolean  // Statut de validation du test
   timestamp: string
   _rev?: string
   // Données de tableau (si applicable)
@@ -149,6 +150,8 @@ export interface AtpTestStats {
   sections: number
   procedures: number
   tests: number
+  validatedTests: number
+  validatedProcedures: number
 }
 
 export interface FileUploadAtpProps {

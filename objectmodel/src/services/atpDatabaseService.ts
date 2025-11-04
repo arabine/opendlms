@@ -128,12 +128,21 @@ class AtpDatabaseService {
   async getStats(): Promise<AtpTestStats> {
     try {
       const tests = await this.getAllTests()
+
+      // Compter les test-cases et procédures validés
+      const testCases = tests.filter(t => t.type === 'test-case')
+      const validatedTestCases = testCases.filter(t => t.validated === true)
+      const procedures = tests.filter(t => t.type === 'procedure')
+      const validatedProcedures = procedures.filter(t => t.validated === true)
+
       return {
         total: tests.length,
         chapters: tests.filter(t => t.type === 'chapter').length,
         sections: tests.filter(t => t.type === 'section').length,
-        procedures: tests.filter(t => t.type === 'procedure').length,
-        tests: tests.filter(t => t.type === 'test-case').length
+        procedures: procedures.length,
+        tests: testCases.length,
+        validatedTests: validatedTestCases.length,
+        validatedProcedures: validatedProcedures.length
       }
     } catch (error) {
       console.error('Error getting stats:', error)
@@ -142,7 +151,9 @@ class AtpDatabaseService {
         chapters: 0,
         sections: 0,
         procedures: 0,
-        tests: 0
+        tests: 0,
+        validatedTests: 0,
+        validatedProcedures: 0
       }
     }
   }
