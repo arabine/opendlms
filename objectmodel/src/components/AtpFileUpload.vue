@@ -95,7 +95,19 @@
         <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
-        <span class="hidden sm:inline">Export</span>
+        <span class="hidden sm:inline">Export JSON</span>
+        <span class="sm:hidden">JSON</span>
+      </button>
+
+      <button
+        @click="exportToWord"
+        class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 inline-flex items-center text-sm whitespace-nowrap"
+      >
+        <svg class="w-4 h-4 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <span class="hidden sm:inline">Export Word</span>
+        <span class="sm:hidden">Word</span>
       </button>
 
       <button
@@ -395,5 +407,266 @@ const handleJsonImport = async (event: Event): Promise<void> => {
     // Réinitialiser l'input file
     target.value = ''
   }
+}
+
+const exportToWord = async (): Promise<void> => {
+  try {
+    message.value = { type: 'info', text: 'Génération du document Word...' }
+
+    // Récupérer tous les tests
+    const allTests = await atpDatabaseService.getAllTests()
+
+    if (allTests.length === 0) {
+      message.value = { type: 'error', text: '❌ Aucun test à exporter' }
+      setTimeout(() => {
+        message.value = null
+      }, 3000)
+      return
+    }
+
+    // Séparer par type
+    const chapters = allTests.filter(t => t.type === 'chapter').sort((a, b) => (a.order || 0) - (b.order || 0))
+    const sections = allTests.filter(t => t.type === 'section').sort((a, b) => (a.order || 0) - (b.order || 0))
+    const testCases = allTests.filter(t => t.type === 'test-case').sort((a, b) => (a.order || 0) - (b.order || 0))
+    const procedures = allTests.filter(t => t.type === 'procedure').sort((a, b) => (a.order || 0) - (b.order || 0))
+
+    // Générer le HTML
+    let html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ATP Tests Export</title>
+  <style>
+    body {
+      font-family: Arial, Calibri, sans-serif;
+      margin: 40px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #2c3e50;
+      border-bottom: 3px solid #3498db;
+      padding-bottom: 10px;
+      margin-top: 30px;
+    }
+    h2 {
+      color: #34495e;
+      border-bottom: 2px solid #95a5a6;
+      padding-bottom: 8px;
+      margin-top: 25px;
+    }
+    h3 {
+      color: #555;
+      margin-top: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 15px 0 30px 0;
+      page-break-inside: avoid;
+    }
+    td, th {
+      border: 1px solid #bdc3c7;
+      padding: 10px;
+      vertical-align: top;
+      text-align: left;
+    }
+    td:first-child {
+      width: 25%;
+      font-weight: bold;
+      background-color: #ecf0f1;
+    }
+    .test-id {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+    .chapter-icon { color: #27ae60; }
+    .section-icon { color: #f39c12; }
+    .test-icon { color: #e74c3c; }
+    .procedure-icon { color: #3498db; }
+    .step {
+      margin: 5px 0;
+      padding-left: 20px;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background-color: #f8f9fa;
+      padding: 10px;
+      border-left: 3px solid #3498db;
+    }
+  </style>
+</head>
+<body>
+  <h1>📋 ATP Tests Export</h1>
+  <p><strong>Date d'export:</strong> ${new Date().toLocaleDateString('fr-FR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })}</p>
+  <p><strong>Total:</strong> ${allTests.length} tests (${chapters.length} chapitres, ${sections.length} sections, ${procedures.length} procédures, ${testCases.length} test cases)</p>
+  <hr>
+`
+
+    // Section Test Cases
+    if (testCases.length > 0 || chapters.length > 0) {
+      html += '<h1>🧪 Test Cases</h1>\n'
+
+      chapters.forEach(chapter => {
+        html += `<h2 class="chapter-icon">📚 ${chapter.number || ''} ${chapter.title}</h2>\n`
+
+        // Sections de ce chapitre
+        const chapterSections = sections.filter(s => s.parent === chapter.number)
+
+        chapterSections.forEach(section => {
+          html += `<h3 class="section-icon">📄 ${section.number || ''} ${section.title}</h3>\n`
+
+          // Tests de cette section
+          const sectionTests = testCases.filter(t => t.parent === section.number)
+          sectionTests.forEach(test => {
+            html += generateTestCaseTable(test)
+          })
+        })
+
+        // Tests directement dans le chapitre (sans section)
+        const directTests = testCases.filter(t => t.chapter === chapter.number && !t.parent)
+        directTests.forEach(test => {
+          html += generateTestCaseTable(test)
+        })
+      })
+
+      // Tests orphelins (sans chapitre)
+      const orphanTests = testCases.filter(t => !t.chapter)
+      if (orphanTests.length > 0) {
+        html += '<h2>🧪 Test Cases (non classés)</h2>\n'
+        orphanTests.forEach(test => {
+          html += generateTestCaseTable(test)
+        })
+      }
+    }
+
+    // Section Procédures
+    if (procedures.length > 0) {
+      html += '<h1 class="procedure-icon">📋 Procédures</h1>\n'
+      procedures.forEach(proc => {
+        html += generateProcedureTable(proc)
+      })
+    }
+
+    html += '</body></html>'
+
+    // Télécharger
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ATP_Tests_${new Date().toISOString().split('T')[0]}.html`
+    a.click()
+
+    URL.revokeObjectURL(url)
+
+    message.value = { type: 'success', text: '✅ Export Word réussi' }
+
+    setTimeout(() => {
+      message.value = null
+    }, 3000)
+  } catch (error) {
+    message.value = {
+      type: 'error',
+      text: `❌ Erreur lors de l'export Word: ${error instanceof Error ? error.message : String(error)}`
+    }
+    console.error('Error exporting to Word:', error)
+  }
+}
+
+function generateTestCaseTable(test: any): string {
+  let html = `<h3 class="test-icon">🧪 <span class="test-id">${test.testId || test.number || ''}</span> ${test.title}</h3>\n`
+  html += '<table>\n'
+
+  if (test.useCase) {
+    html += `  <tr><td>Use Case</td><td>${escapeHtml(test.useCase)}</td></tr>\n`
+  }
+  if (test.scenario) {
+    html += `  <tr><td>Scenario</td><td>${escapeHtml(test.scenario)}</td></tr>\n`
+  }
+  if (test.testPurpose) {
+    html += `  <tr><td>Test Purpose</td><td>${escapeHtml(test.testPurpose)}</td></tr>\n`
+  }
+  if (test.testStrategy) {
+    html += `  <tr><td>Test Strategy</td><td>${escapeHtml(test.testStrategy)}</td></tr>\n`
+  }
+  if (test.aaFilter) {
+    html += `  <tr><td>AA Filter</td><td>${escapeHtml(test.aaFilter)}</td></tr>\n`
+  }
+  if (test.prerequisites) {
+    html += `  <tr><td>Prerequisites</td><td>${escapeHtml(test.prerequisites)}</td></tr>\n`
+  }
+  if (test.preamble) {
+    html += `  <tr><td>Preamble</td><td><pre>${escapeHtml(test.preamble)}</pre></td></tr>\n`
+  }
+
+  // Test Body avec étapes
+  if (test.testBodySteps && test.testBodySteps.length > 0) {
+    const stepsHtml = test.testBodySteps
+      .map((step: string, idx: number) => `<div class="step"><strong>Step ${idx + 1}:</strong> ${escapeHtml(step)}</div>`)
+      .join('\n')
+    html += `  <tr><td>Test Body</td><td>${stepsHtml}</td></tr>\n`
+  } else if (test.testBody) {
+    html += `  <tr><td>Test Body</td><td><pre>${escapeHtml(test.testBody)}</pre></td></tr>\n`
+  }
+
+  if (test.postamble) {
+    html += `  <tr><td>Postamble</td><td><pre>${escapeHtml(test.postamble)}</pre></td></tr>\n`
+  }
+  if (test.expectedResult) {
+    html += `  <tr><td>Expected Result</td><td>${escapeHtml(test.expectedResult)}</td></tr>\n`
+  }
+  if (test.comment) {
+    html += `  <tr><td>Comment</td><td>${escapeHtml(test.comment)}</td></tr>\n`
+  }
+
+  html += '</table>\n'
+  return html
+}
+
+function generateProcedureTable(proc: any): string {
+  let html = `<h3 class="procedure-icon">📋 ${proc.number || ''} ${proc.title}</h3>\n`
+  html += '<table>\n'
+
+  if (proc.references) {
+    html += `  <tr><td>References</td><td>${escapeHtml(proc.references)}</td></tr>\n`
+  }
+  if (proc.testPurpose) {
+    html += `  <tr><td>Test Purpose</td><td>${escapeHtml(proc.testPurpose)}</td></tr>\n`
+  }
+
+  // Procedure Body avec étapes
+  if (proc.procedureBody) {
+    const steps = proc.procedureBody.split('\n\n').filter((s: string) => s.trim())
+    if (steps.length > 1) {
+      const stepsHtml = steps
+        .map((step: string, idx: number) => `<div class="step"><strong>Étape ${idx + 1}:</strong> ${escapeHtml(step)}</div>`)
+        .join('\n')
+      html += `  <tr><td>Procedure Body</td><td>${stepsHtml}</td></tr>\n`
+    } else {
+      html += `  <tr><td>Procedure Body</td><td><pre>${escapeHtml(proc.procedureBody)}</pre></td></tr>\n`
+    }
+  }
+
+  html += '</table>\n'
+  return html
+}
+
+function escapeHtml(text: string): string {
+  if (!text) return ''
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/\n/g, '<br>')
 }
 </script>
