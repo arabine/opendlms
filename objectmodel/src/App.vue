@@ -1,11 +1,11 @@
 <template>
-  <div class="bg-gray-50 min-h-screen">
-    <div class="container mx-auto p-6">
-      <div class="bg-white rounded-lg shadow-lg p-6">
+  <div class="bg-gray-50 h-screen flex flex-col">
+    <div class="flex-shrink-0 bg-white shadow-lg">
+      <div class="container mx-auto px-6 py-4">
         <HeaderComponent />
-        
+
         <!-- Onglets de navigation -->
-        <div class="flex border-b border-gray-200 mb-6">
+        <div class="flex border-b border-gray-200">
           <button
             @click="activeTab = 'cosem'"
             :class="[
@@ -29,23 +29,32 @@
             📋 Tests ATP
           </button>
         </div>
+      </div>
+    </div>
 
-        <!-- Contenu COSEM -->
-        <div v-if="activeTab === 'cosem'">
+    <div class="flex-1 overflow-hidden">
+      <!-- Contenu COSEM -->
+      <div v-show="activeTab === 'cosem'" class="h-full flex flex-col">
+        <div class="flex-shrink-0 container mx-auto px-6 py-4">
           <FileUploadComponent
             :loading="loading"
             @file-upload="handleFileUpload"
           />
 
           <LoadingComponent v-if="loading" />
-          
+
           <ErrorComponent
             v-if="error"
             :error="error"
           />
 
+          <EmptyStateComponent
+            v-if="!loading && cosemObjects.length === 0"
+          />
+        </div>
+
+        <div v-if="cosemObjects.length > 0" class="flex-1 overflow-hidden container mx-auto px-6">
           <MainContentComponent
-            v-if="cosemObjects.length > 0"
             :cosem-objects="cosemObjects"
             :search-query="searchQuery"
             :selected-object="selectedObject"
@@ -54,16 +63,12 @@
             @select-attribute="selectAttribute"
             @toggle-object="toggleObject"
           />
-
-          <EmptyStateComponent
-            v-if="!loading && cosemObjects.length === 0"
-          />
         </div>
+      </div>
 
-        <!-- Contenu ATP -->
-        <div v-if="activeTab === 'atp'">
-          <AtpManager />
-        </div>
+      <!-- Contenu ATP -->
+      <div v-show="activeTab === 'atp'" class="h-full">
+        <AtpManager />
       </div>
     </div>
   </div>

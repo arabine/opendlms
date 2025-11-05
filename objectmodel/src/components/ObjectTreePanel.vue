@@ -1,22 +1,24 @@
 <template>
-  <div class="space-y-4">
+  <div class="flex flex-col h-full min-h-0">
     <!-- Search and Filter Section -->
-    <SearchFilterComponent
-      :search-query="searchQuery"
-      :filtered-objects-count="filteredObjects.length"
-      :total-objects-count="cosemObjects.length"
-      :all-expanded="allExpanded"
-      @update-search="$emit('update-search', $event)"
-      @toggle-all="toggleAllObjects"
-    />
+    <div class="flex-shrink-0">
+      <SearchFilterComponent
+        :search-query="searchQuery"
+        :filtered-objects-count="filteredObjects.length"
+        :total-objects-count="cosemObjects.length"
+        :all-expanded="allExpanded"
+        @update-search="$emit('update-search', $event)"
+        @toggle-all="toggleAllObjects"
+      />
+    </div>
 
     <!-- Objects Tree -->
-    <div class="space-y-2">
-      <h2 class="text-xl font-semibold text-gray-800 mb-4">
+    <div class="flex flex-col flex-1 overflow-hidden mt-4 min-h-0">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4 flex-shrink-0">
         Arbre des objets COSEM
       </h2>
 
-      <div class="space-y-1 max-h-96 overflow-y-auto">
+      <div class="space-y-1 flex-1 overflow-y-scroll pb-8 min-h-0">
         <ObjectItemComponent
           v-for="object in filteredObjects"
           :key="object.id"

@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="flex flex-col h-full overflow-y-auto">
     <!-- Empty State -->
     <div v-if="!selectedAttribute" class="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
       <div class="text-gray-500">
@@ -12,7 +12,7 @@
     </div>
 
     <!-- XML Generation Interface -->
-    <div v-else class="space-y-4">
+    <div v-else class="space-y-4 pb-4">
       <!-- Selected Attribute Info -->
       <SelectedAttributeInfo
         :selected-object="selectedObject!"

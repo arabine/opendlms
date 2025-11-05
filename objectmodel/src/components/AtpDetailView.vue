@@ -91,7 +91,7 @@
     </div>
 
     <!-- Contenu -->
-    <div class="p-6 space-y-6">
+    <div class="p-6 pb-8 space-y-6">
       <!-- Champs détaillés du CHAPITRE (si applicable) -->
       <div v-if="test.type === 'chapter'" class="space-y-4">
         <h3 class="text-lg font-semibold text-gray-800 mb-3">Détails du chapitre</h3>

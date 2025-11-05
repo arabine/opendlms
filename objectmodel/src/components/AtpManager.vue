@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-screen">
+  <div class="flex flex-col h-full">
     <!-- En-tête avec stats et boutons -->
     <div class="flex-shrink-0 p-4 bg-gray-50 border-b border-gray-200">
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

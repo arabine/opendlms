@@ -43,7 +43,7 @@
     <div class="flex-1 overflow-y-auto p-4" tabindex="0" @keydown="handleKeyDown">
       <!-- Onglet Procédures -->
       <div v-if="activeTab === 'procedures'">
-        <div v-if="filteredProcedures.length > 0" class="space-y-1">
+        <div v-if="filteredProcedures.length > 0" class="space-y-1 pb-8">
           <div
             v-for="(procedure, index) in filteredProcedures"
             :key="procedure.id"
@@ -127,7 +127,7 @@
 
       <!-- Onglet Test Cases -->
       <div v-if="activeTab === 'testcases'">
-        <div v-if="filteredTestCases.length > 0" class="space-y-1">
+        <div v-if="filteredTestCases.length > 0" class="space-y-1 pb-8">
           <TreeNodeItem
             v-for="chapter in filteredTestCases"
             :key="chapter.id"

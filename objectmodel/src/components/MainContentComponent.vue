@@ -1,21 +1,25 @@
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
     <!-- Left Panel: Objects Tree -->
-    <ObjectTreePanel
-      :cosem-objects="cosemObjects"
-      :search-query="searchQuery"
-      :selected-object="selectedObject"
-      :selected-attribute="selectedAttribute"
-      @update-search="$emit('update-search', $event)"
-      @select-attribute="$emit('select-attribute', $event)"
-      @toggle-object="$emit('toggle-object', $event)"
-    />
+    <div class="min-h-0 h-full">
+      <ObjectTreePanel
+        :cosem-objects="cosemObjects"
+        :search-query="searchQuery"
+        :selected-object="selectedObject"
+        :selected-attribute="selectedAttribute"
+        @update-search="$emit('update-search', $event)"
+        @select-attribute="$emit('select-attribute', $event)"
+        @toggle-object="$emit('toggle-object', $event)"
+      />
+    </div>
 
     <!-- Right Panel: XML Generation -->
-    <XmlGenerationPanel
-      :selected-object="selectedObject"
-      :selected-attribute="selectedAttribute"
-    />
+    <div class="min-h-0 h-full">
+      <XmlGenerationPanel
+        :selected-object="selectedObject"
+        :selected-attribute="selectedAttribute"
+      />
+    </div>
   </div>
 </template>
 
