@@ -28,6 +28,17 @@
           >
             📋 Tests ATP
           </button>
+          <button
+            @click="activeTab = 'datetime'"
+            :class="[
+              'px-6 py-3 font-semibold transition-colors duration-200',
+              activeTab === 'datetime'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+            ]"
+          >
+            🕐 Date Time Utilities
+          </button>
         </div>
       </div>
     </div>
@@ -70,6 +81,11 @@
       <div v-show="activeTab === 'atp'" class="h-full">
         <AtpManager />
       </div>
+
+      <!-- Contenu Date Time Utilities -->
+      <div v-show="activeTab === 'datetime'" class="h-full">
+        <DateTimeUtilities />
+      </div>
     </div>
   </div>
 </template>
@@ -83,10 +99,11 @@ import ErrorComponent from './components/ErrorComponent.vue'
 import MainContentComponent from './components/MainContentComponent.vue'
 import EmptyStateComponent from './components/EmptyStateComponent.vue'
 import AtpManager from './components/AtpManager.vue'
+import DateTimeUtilities from './components/DateTimeUtilities.vue'
 import { excelService } from './services/excelService'
 import type { DlmsObject, DlmsAttribute, SelectAttributeEvent } from '@/types'
 
-const activeTab = ref<'cosem' | 'atp'>('cosem')
+const activeTab = ref<'cosem' | 'atp' | 'datetime'>('cosem')
 const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
 const cosemObjects = ref<DlmsObject[]>([])
