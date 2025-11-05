@@ -364,8 +364,12 @@ class AtpTreeService {
    */
   duplicateNode(node: AtpTreeNode): AtpTreeNode {
     const timestamp = Date.now()
+
+    // Copier le test en excluant _rev pour éviter les conflits PouchDB
+    const { _rev, ...testWithoutRev } = node.test
+
     const newTest = {
-      ...node.test,
+      ...testWithoutRev,
       _id: `${node.test.type}_${timestamp}_copy`,
       title: `${node.test.title} (copie)`,
       timestamp: new Date().toISOString()
