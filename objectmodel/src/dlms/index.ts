@@ -38,7 +38,13 @@ export type { AttributeConfig, MethodConfig, CosemClassConfig } from './interfac
 // Classes COSEM implémentées
 export { default as DataClassGenerator } from './classes/Class01_Data'
 export { default as RegisterClassGenerator, DlmsUnit, type ScalerUnit } from './classes/Class03_Register'
-export { 
+export {
+  default as SingleActionScheduleClassGenerator,
+  type Script,
+  type ExecutionTimeDate,
+  ScheduleType
+} from './classes/Class22_SingleActionSchedule'
+export {
   default as PushSetupGenerator,
   type PushObjectDefinition,
   RestrictionType,
@@ -173,6 +179,34 @@ export const WsmGcpConfigurations = {
     })
 
     return `${objectListXml}\n\n${destinationXml}`
+  },
+
+  /**
+   * Configuration planning d'action unique (Single action schedule)
+   * Exécution quotidienne d'un script
+   */
+  createDailySchedule: (
+    obisCode: string,
+    scriptLogicalName: string,
+    scriptSelector: number,
+    hour: number = 0,
+    minute: number = 0
+  ): string => {
+    const timeHex = `${hour.toString(16).padStart(2, '0')}${minute.toString(16).padStart(2, '0')}0000FF`
+    const dateHex = '07FFFFFFFFFF0000FF' // Wildcard pour tous les jours
+
+    const scriptXml = generateSetRequest(22, obisCode, 2, {
+      script_logical_name: scriptLogicalName,
+      script_selector: scriptSelector
+    })
+
+    const typeXml = generateSetRequest(22, obisCode, 3, 1) // Type 1: simple schedule
+
+    const executionTimeXml = generateSetRequest(22, obisCode, 4, [
+      { time: timeHex, date: dateHex }
+    ])
+
+    return `${scriptXml}\n\n${typeXml}\n\n${executionTimeXml}`
   },
 
   /**

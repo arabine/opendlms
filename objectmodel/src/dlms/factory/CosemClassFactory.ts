@@ -18,6 +18,7 @@ import { ICosemClassGenerator } from '../interfaces/ICosemClass'
 // Import de toutes les classes implémentées
 import DataClassGenerator from '../classes/Class01_Data'
 import RegisterClassGenerator from '../classes/Class03_Register'
+import SingleActionScheduleClassGenerator from '../classes/Class22_SingleActionSchedule'
 import PushSetupGenerator from '../classes/Class40_PushSetup'
 
 // ===============================================
@@ -32,10 +33,13 @@ const COSEM_CLASS_REGISTRY = new Map<ClassId, () => ICosemClassGenerator>([
   // Classes fondamentales
   [1, () => new DataClassGenerator()],           // Data
   [3, () => new RegisterClassGenerator()],       // Register
-  
+
+  // Classes de scheduling
+  [22, () => new SingleActionScheduleClassGenerator()],  // Single action schedule
+
   // Classes de communication et push
   [40, () => new PushSetupGenerator()],          // Push Setup v2
-  
+
   // TODO: Ajouter les autres classes selon analyse Excel
   // [6, () => new RegisterActivationGenerator()],    // Register activation
   // [7, () => new ProfileGenericGenerator()],         // Profile generic v1
@@ -48,7 +52,6 @@ const COSEM_CLASS_REGISTRY = new Map<ClassId, () => ICosemClassGenerator>([
   // [19, () => new IecLocalPortSetupGenerator()],     // IEC local port setup v1
   // [20, () => new ActivityCalendarGenerator()],      // Activity Calendar
   // [21, () => new RegisterMonitorGenerator()],       // Register monitor
-  // [22, () => new SingleActionScheduleGenerator()],  // Single action schedule
   // [23, () => new IecHdlcSetupGenerator()],          // IEC HDLC setup v1
   // [25, () => new MBusSlavePortSetupGenerator()],    // M-Bus slave port setup
   // [27, () => new ModemConfigurationGenerator()],    // Modem configuration v1
@@ -459,12 +462,23 @@ export class CosemClassFactory {
             examples['Battery Status'] = this.generateSetRequest(1, '0-0:96.6.1.255', 2, true)
             examples['Event Counter'] = this.generateSetRequest(1, '0-0:96.15.0.255', 2, 42)
             break
-            
+
           case 3: // Register
             examples['Water Total'] = this.generateSetRequest(3, '1-0:1.8.0.255', 2, 123456)
             examples['Flow Rate'] = this.generateSetRequest(3, '1-0:2.27.0.255', 2, 150)
             break
-            
+
+          case 22: // Single action schedule
+            examples['Executed Script'] = this.generateSetRequest(22, '0-0:15.0.1.0', 2, {
+              script_logical_name: '0-0:10.0.1.0',
+              script_selector: 1
+            })
+            examples['Type'] = this.generateSetRequest(22, '0-0:15.0.1.0', 3, 1)
+            examples['Execution Time'] = this.generateSetRequest(22, '0-0:15.0.1.0', 4, [
+              { time: '00000000FF', date: '07FFFFFFFFFF0000FF' }
+            ])
+            break
+
           case 40: // Push Setup
             examples['Push Object List'] = this.generateSetRequest(40, '0-0:25.9.0.255', 2, [
               {
@@ -477,7 +491,7 @@ export class CosemClassFactory {
               }
             ])
             break
-            
+
           default:
             // Exemple générique - logical_name
             examples['Logical Name'] = this.generateGetRequest(classId, '0-0:1.0.0.255', 1)

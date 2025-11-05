@@ -239,6 +239,37 @@ class DlmsService {
         { label: 'Volume', value: 12345 },
         { label: 'Débit', value: 150 }
       )
+    } else if (classId === 22) {
+      // Single action schedule
+      if (attributeIndex === 2) {
+        examples.push({
+          label: 'Script à 00:00',
+          value: {
+            script_logical_name: '0-0:10.0.1.0',
+            script_selector: 1
+          }
+        })
+      } else if (attributeIndex === 3) {
+        examples.push(
+          { label: 'Type 1 (simple)', value: 1 },
+          { label: 'Type 5 (multiple)', value: 5 }
+        )
+      } else if (attributeIndex === 4) {
+        examples.push(
+          {
+            label: 'Quotidien à 00:00',
+            value: [{ time: '00000000FF', date: '07FFFFFFFFFF0000FF' }]
+          },
+          {
+            label: '3x par jour',
+            value: [
+              { time: '06000000FF', date: '07FFFFFFFFFF0000FF' },
+              { time: '0C000000FF', date: '07FFFFFFFFFF0000FF' },
+              { time: '12000000FF', date: '07FFFFFFFFFF0000FF' }
+            ]
+          }
+        )
+      }
     } else if (classId === 40 && attributeIndex === 2) {
       examples.push({
         label: 'Push Objects',
