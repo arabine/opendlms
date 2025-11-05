@@ -127,6 +127,7 @@ export interface AtpTest {
   // === Champs de PROCEDURE ===
   references?: string          // References (pour procédure)
   procedureBody?: string       // Procedure body (pour procédure)
+  procedureSteps?: string[]    // Procedure body décomposé en étapes
   
   // === Champs de TEST CASE ===
   useCase?: string            // Use Case

@@ -236,9 +236,9 @@ const handleDragOver = (event: DragEvent) => {
   const y = event.clientY - rect.top
   const height = rect.height
 
-  // Si le nœud a des enfants, on peut le mettre "inside"
-  // Sinon, on propose uniquement before/after
-  const canHaveChildren = props.node.test.type === 'chapter' || props.node.test.type === 'section'
+  // Seuls les chapitres peuvent avoir des enfants (structure plate)
+  // Les sections sont des simples titres/marqueurs au même niveau que les test-cases
+  const canHaveChildren = props.node.test.type === 'chapter'
 
   if (canHaveChildren && y > height * 0.25 && y < height * 0.75) {
     dropPosition.value = 'inside'

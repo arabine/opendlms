@@ -149,12 +149,13 @@
                   <div class="text-xs font-semibold text-gray-500 mb-1">Étape {{ idx + 1 }}</div>
                   <textarea
                     v-model="procedureSteps[idx]"
-                    rows="3"
-                    class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500"
+                    rows="15"
+                    class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500 font-mono"
                     placeholder="Description de l'étape..."
                   ></textarea>
                 </div>
                 <button
+                  v-if="procedureSteps.length > 1"
                   @click="removeProcedureStep(idx)"
                   class="flex-shrink-0 p-1 text-red-600 hover:bg-red-100 rounded"
                   title="Supprimer l'étape"
@@ -423,7 +424,8 @@ watch(() => props.test, (newTest) => {
     if (newTest.type === 'test-case') {
       testBodySteps.value = newTest.testBodySteps || (newTest.testBody ? [newTest.testBody] : [])
     } else if (newTest.type === 'procedure') {
-      procedureSteps.value = newTest.procedureBody ? newTest.procedureBody.split('\n\n').filter(s => s.trim()) : []
+      // Charger depuis procedureSteps si disponible, sinon depuis procedureBody
+      procedureSteps.value = newTest.procedureSteps || (newTest.procedureBody ? [newTest.procedureBody] : [])
     }
   }
   isEditing.value = false
@@ -438,7 +440,8 @@ const startEditing = () => {
   if (props.test.type === 'test-case') {
     testBodySteps.value = [...(props.test.testBodySteps || (props.test.testBody ? [props.test.testBody] : []))]
   } else if (props.test.type === 'procedure') {
-    procedureSteps.value = props.test.procedureBody ? props.test.procedureBody.split('\n\n').filter(s => s.trim()) : []
+    // Charger depuis procedureSteps si disponible, sinon depuis procedureBody
+    procedureSteps.value = [...(props.test.procedureSteps || (props.test.procedureBody ? [props.test.procedureBody] : []))]
   }
 
   isEditing.value = true
@@ -451,7 +454,8 @@ const cancelEditing = () => {
     if (props.test.type === 'test-case') {
       testBodySteps.value = props.test.testBodySteps || (props.test.testBody ? [props.test.testBody] : [])
     } else if (props.test.type === 'procedure') {
-      procedureSteps.value = props.test.procedureBody ? props.test.procedureBody.split('\n\n').filter(s => s.trim()) : []
+      // Charger depuis procedureSteps si disponible, sinon depuis procedureBody
+      procedureSteps.value = props.test.procedureSteps || (props.test.procedureBody ? [props.test.procedureBody] : [])
     }
   }
 }
@@ -469,6 +473,8 @@ const saveChanges = () => {
     updatedTest.testBodySteps = testBodySteps.value.filter(s => s.trim())
     updatedTest.testBody = testBodySteps.value.join('\n\n')
   } else if (props.test.type === 'procedure') {
+    // Sauvegarder à la fois procedureSteps (array) et procedureBody (string)
+    updatedTest.procedureSteps = procedureSteps.value.filter(s => s.trim())
     updatedTest.procedureBody = procedureSteps.value.filter(s => s.trim()).join('\n\n')
   }
 

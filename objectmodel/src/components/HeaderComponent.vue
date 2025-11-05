@@ -1,6 +1,6 @@
 <template>
   <h1 class="text-3xl font-bold text-gray-800 mb-6">
-    DLMS COSEM Object Model Viewer
+    DLMS UA Editor
   </h1>
 </template>
 

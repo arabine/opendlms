@@ -106,7 +106,7 @@ class AtpTreeService {
   }
 
   /**
-   * Créer un nœud d'arbre pour les test cases (structure hiérarchique)
+   * Créer un nœud d'arbre pour les test cases (structure PLATE : sections et tests au même niveau)
    */
   private createTestCaseNode(
     chapter: AtpTest,
@@ -130,46 +130,26 @@ class AtpTreeService {
       return (a.title || a.testId || '').localeCompare(b.title || b.testId || '')
     }
 
-    // Trouver les sections qui appartiennent à ce chapitre
+    // Trouver toutes les sections ET tous les test-cases de ce chapitre
     const chapterSections = allSections
-      .filter(s => s.parent === chapter.number)
-      .sort(sortByOrder)
+      .filter(s => s.chapter === chapter.number)
+      .map(s => ({ type: 'section' as const, item: s }))
 
-    // Trouver les tests qui appartiennent directement à ce chapitre
-    const directTests = allTestCases
-      .filter(t => t.chapter === chapter.number && !t.parent)
-      .sort(sortByOrder)
+    const chapterTests = allTestCases
+      .filter(t => t.chapter === chapter.number)
+      .map(t => ({ type: 'test' as const, item: t }))
 
-    // Créer les nœuds pour les sections
-    node.children = chapterSections.map(section => {
-      const sectionNode: AtpTreeNode = {
-        id: section._id,
-        test: section,
-        children: [],
-        expanded: false
-      }
+    // Combiner sections et tests, puis trier par order
+    const allChildren = [...chapterSections, ...chapterTests]
+      .sort((a, b) => sortByOrder(a.item, b.item))
 
-      // Ajouter les tests de cette section
-      const sectionTests = allTestCases
-        .filter(t => t.parent === section.number)
-        .sort(sortByOrder)
-      sectionNode.children = sectionTests.map(t => ({
-        id: t._id,
-        test: t,
-        children: [],
-        expanded: false
-      }))
-
-      return sectionNode
-    })
-
-    // Ajouter les tests directs
-    node.children.push(...directTests.map(t => ({
-      id: t._id,
-      test: t,
-      children: [],
+    // Créer les nœuds dans l'ordre (PLAT - pas de hiérarchie section > test)
+    node.children = allChildren.map(child => ({
+      id: child.item._id,
+      test: child.item,
+      children: [], // Toujours vide - structure plate
       expanded: false
-    })))
+    }))
 
     return node
   }

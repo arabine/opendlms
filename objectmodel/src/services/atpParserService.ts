@@ -741,18 +741,21 @@ class AtpParserService {
         if (line.startsWith('## ') && !line.startsWith('### ')) {
           const chapterTitle = line.substring(3).trim()
           const chapterNum = String(results.filter(r => r.type === 'chapter').length + 1)
-          
-          currentChapter = { number: chapterNum, title: chapterTitle }
+
+          // Créer un ID unique basé sur le titre pour éviter les doublons
+          const chapterId = `PROC_${chapterTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}_${idCounter++}`
+
+          currentChapter = { number: `PROC-${chapterNum}`, title: chapterTitle }
           currentSection = null
-          
+
           results.push({
-            _id: `chapter_${chapterNum}_${idCounter++}`,
+            _id: chapterId,
             type: 'chapter',
-            number: chapterNum,
+            number: `PROC-${chapterNum}`,
             title: chapterTitle,
             timestamp: new Date().toISOString()
           })
-          
+
           lineIndex++
           continue
         }
@@ -761,11 +764,14 @@ class AtpParserService {
         if (line.startsWith('### ')) {
           const sectionTitle = line.substring(4).trim()
           const sectionNum = currentChapter ? `${currentChapter.number}.${results.filter(r => r.type === 'section' && r.chapter === currentChapter?.number).length + 1}` : String(idCounter)
-          
+
           currentSection = { number: sectionNum, title: sectionTitle }
-          
+
+          // ID unique basé sur le titre de la section
+          const sectionId = `PROC_SEC_${sectionTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}_${idCounter++}`
+
           results.push({
-            _id: `section_${sectionNum.replace(/\./g, '_')}_${idCounter++}`,
+            _id: sectionId,
             type: 'section',
             number: sectionNum,
             title: sectionTitle,
@@ -773,7 +779,7 @@ class AtpParserService {
             chapter: currentChapter ? currentChapter.number : null,
             timestamp: new Date().toISOString()
           })
-          
+
           lineIndex++
           continue
         }
@@ -837,18 +843,21 @@ class AtpParserService {
         if (line.startsWith('## ') && !line.startsWith('### ')) {
           const chapterTitle = line.substring(3).trim()
           const chapterNum = String(results.filter(r => r.type === 'chapter').length + 1)
-          
-          currentChapter = { number: chapterNum, title: chapterTitle }
+
+          // Créer un ID unique basé sur le titre pour éviter les doublons
+          const chapterId = `TC_${chapterTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}_${idCounter++}`
+
+          currentChapter = { number: `TC-${chapterNum}`, title: chapterTitle }
           currentSection = null
-          
+
           results.push({
-            _id: `chapter_${chapterNum}_${idCounter++}`,
+            _id: chapterId,
             type: 'chapter',
-            number: chapterNum,
+            number: `TC-${chapterNum}`,
             title: chapterTitle,
             timestamp: new Date().toISOString()
           })
-          
+
           lineIndex++
           continue
         }
@@ -857,11 +866,14 @@ class AtpParserService {
         if (line.startsWith('### ') && !line.includes('ACESM-')) {
           const sectionTitle = line.substring(4).trim()
           const sectionNum = currentChapter ? `${currentChapter.number}.${results.filter(r => r.type === 'section' && r.chapter === currentChapter?.number).length + 1}` : String(idCounter)
-          
+
           currentSection = { number: sectionNum, title: sectionTitle }
-          
+
+          // ID unique basé sur le titre de la section
+          const sectionId = `TC_SEC_${sectionTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}_${idCounter++}`
+
           results.push({
-            _id: `section_${sectionNum.replace(/\./g, '_')}_${idCounter++}`,
+            _id: sectionId,
             type: 'section',
             number: sectionNum,
             title: sectionTitle,
@@ -869,7 +881,7 @@ class AtpParserService {
             chapter: currentChapter ? currentChapter.number : null,
             timestamp: new Date().toISOString()
           })
-          
+
           lineIndex++
           continue
         }

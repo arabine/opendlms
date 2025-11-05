@@ -316,7 +316,7 @@ const handleSaveTest = async (test: AtpTest): Promise<void> => {
       console.log('Test saved to database')
 
       // Réorganiser les ordres si nécessaire
-      await reorderSiblings(test.parent || null, test.chapter || null, test.type)
+      await reorderSiblings(test.parent || null, test.chapter || null)
       console.log('Siblings reordered')
 
       showNotification('success', 'Test créé avec succès')
@@ -437,41 +437,77 @@ const handleMoveNode = async (data: {
     }
 
     // Déterminer le nouveau parent selon la position
+    // STRUCTURE PLATE : sections et test-cases sont au même niveau sous le chapitre
     let newParent: string | null | undefined
     let newChapter: string | null | undefined
+    let adjustedPosition = data.position
 
     if (data.position === 'inside') {
-      newParent = targetTest.type === 'chapter' ? targetTest.number : targetTest.parent
-      newChapter = targetTest.chapter || targetTest.number
+      // On peut seulement drop "inside" un chapitre
+      if (targetTest.type === 'chapter') {
+        newParent = null
+        newChapter = targetTest.number
+      } else {
+        // Si on essaie de drop "inside" autre chose, on le met "after" à la place
+        newParent = targetTest.parent
+        newChapter = targetTest.chapter
+        adjustedPosition = 'after'
+      }
     } else {
-      // Si before/after, on garde le même parent que la cible
+      // Pour before/after : on est toujours au même niveau
+      // Sections et test-cases partagent le même parent (null) et le même chapitre
       newParent = targetTest.parent
       newChapter = targetTest.chapter
     }
 
-    // Trouver tous les éléments frères (même parent) dans la nouvelle position
-    const siblings = tests.value.filter(t =>
-      t._id !== data.sourceId &&
-      t.parent === newParent &&
-      t.chapter === newChapter &&
-      t.type === sourceTest.type
-    )
+    // Trouver tous les éléments frères (même parent et chapitre), triés par ordre
+    // Note: sections et test-cases peuvent être mélangés (structure plate)
+    const siblings = tests.value
+      .filter(t =>
+        t._id !== data.sourceId &&
+        (t.parent || null) === (newParent || null) &&
+        (t.chapter || null) === (newChapter || null) &&
+        (t.type === 'section' || t.type === 'test-case')
+      )
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
 
-    // Calculer le nouvel ordre
+    // Calculer le nouvel ordre en plaçant exactement entre deux éléments
     let newOrder: number
 
-    if (data.position === 'before') {
-      // Insérer avant la cible
-      newOrder = targetTest.order !== undefined ? targetTest.order - 0.5 : 0
-    } else if (data.position === 'after') {
-      // Insérer après la cible
-      newOrder = targetTest.order !== undefined ? targetTest.order + 0.5 : siblings.length
+    if (adjustedPosition === 'before') {
+      // Trouver l'élément juste avant la cible
+      const targetIndex = siblings.findIndex(s => s._id === targetTest._id)
+      if (targetIndex > 0) {
+        // Il y a un élément avant : placer entre les deux
+        const prevOrder = siblings[targetIndex - 1].order || 0
+        const currOrder = targetTest.order || 0
+        newOrder = (prevOrder + currOrder) / 2
+      } else {
+        // C'est le premier : placer avant
+        const currOrder = targetTest.order || 0
+        newOrder = currOrder - 1
+      }
+    } else if (adjustedPosition === 'after') {
+      // Trouver l'élément juste après la cible
+      const targetIndex = siblings.findIndex(s => s._id === targetTest._id)
+      if (targetIndex >= 0 && targetIndex < siblings.length - 1) {
+        // Il y a un élément après : placer entre les deux
+        const currOrder = targetTest.order || 0
+        const nextOrder = siblings[targetIndex + 1].order || 0
+        newOrder = (currOrder + nextOrder) / 2
+      } else {
+        // C'est le dernier : placer après
+        const currOrder = targetTest.order || 0
+        newOrder = currOrder + 1
+      }
     } else {
       // Insérer comme dernier enfant
-      const childrenOrders = tests.value
-        .filter(t => t.parent === newParent && t.chapter === newChapter && t.type === sourceTest.type)
-        .map(t => t.order || 0)
-      newOrder = childrenOrders.length > 0 ? Math.max(...childrenOrders) + 1 : 0
+      if (siblings.length > 0) {
+        const maxOrder = Math.max(...siblings.map(s => s.order || 0))
+        newOrder = maxOrder + 1
+      } else {
+        newOrder = 0
+      }
     }
 
     // Mettre à jour la source
@@ -482,7 +518,7 @@ const handleMoveNode = async (data: {
     await atpDatabaseService.updateTest(sourceTest)
 
     // Réorganiser tous les ordres pour avoir des valeurs entières séquentielles
-    await reorderSiblings(newParent, newChapter, sourceTest.type)
+    await reorderSiblings(newParent, newChapter)
 
     showNotification('success', 'Élément déplacé avec succès')
 
@@ -502,25 +538,25 @@ const handleMoveNode = async (data: {
 }
 
 // Réorganiser les ordres d'un groupe de frères pour avoir des valeurs entières séquentielles
+// Structure plate : sections et test-cases sont mélangés
 const reorderSiblings = async (
   parent: string | null | undefined,
-  chapter: string | null | undefined,
-  type: TestType
+  chapter: string | null | undefined
 ): Promise<void> => {
   // Normaliser les valeurs undefined en null pour les comparaisons
   const normalizedParent = parent || null
   const normalizedChapter = chapter || null
 
-  // Trouver tous les éléments du même niveau
+  // Trouver tous les éléments du même niveau (sections ET test-cases)
   const siblings = tests.value
     .filter(t =>
       (t.parent || null) === normalizedParent &&
       (t.chapter || null) === normalizedChapter &&
-      t.type === type
+      (t.type === 'section' || t.type === 'test-case')
     )
     .sort((a, b) => (a.order || 0) - (b.order || 0))
 
-  console.log(`Reordering ${siblings.length} siblings of type ${type}`, { parent: normalizedParent, chapter: normalizedChapter })
+  console.log(`Reordering ${siblings.length} siblings (sections + test-cases)`, { parent: normalizedParent, chapter: normalizedChapter })
 
   // Réassigner des ordres séquentiels
   for (let i = 0; i < siblings.length; i++) {
