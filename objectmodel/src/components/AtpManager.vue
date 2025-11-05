@@ -38,7 +38,7 @@
           @paste-node="handlePasteNode"
           @duplicate-node="handleDuplicateNode"
           @delete-node="handleDeleteNode"
-          @add-test="openAddModal"
+          @add-test="(type) => openAddModal(type)"
         />
       </div>
 
@@ -63,14 +63,6 @@
       </div>
     </div>
 
-    <!-- Modal d'édition -->
-    <AtpEditModal
-      :is-open="isEditModalOpen"
-      :test="testToEdit"
-      @close="closeEditModal"
-      @save="handleSaveTest"
-    />
-
     <!-- Notifications -->
     <div
       v-if="notification"
@@ -88,7 +80,6 @@ import AtpFileUpload from './AtpFileUpload.vue'
 import AtpStats from './AtpStats.vue'
 import AtpTreeView from './AtpTreeView.vue'
 import AtpDetailView from './AtpDetailView.vue'
-import AtpEditModal from './AtpEditModal.vue'
 import { atpDatabaseService } from '@/services/atpDatabaseService'
 import { atpTreeService } from '@/services/atpTreeService'
 import type { AtpTest, AtpTestStats, AtpTreeNode, TestType } from '@/types'
@@ -101,8 +92,6 @@ const procedureTree = ref<AtpTreeNode[]>([])
 const testCaseTree = ref<AtpTreeNode[]>([])
 const procedures = ref<AtpTest[]>([])
 const testCases = ref<AtpTest[]>([])
-const isEditModalOpen = ref<boolean>(false)
-const testToEdit = ref<AtpTest | null>(null)
 const notification = ref<{ type: 'success' | 'error', message: string } | null>(null)
 
 const stats = computed<AtpTestStats>(() => {
@@ -188,169 +177,102 @@ const handleToggleTestCase = (id: string): void => {
   testCaseTree.value = atpTreeService.toggleNode(testCaseTree.value, id)
 }
 
-const openAddModal = (): void => {
-  // Si un test est sélectionné, créer un template basé sur celui-ci
-  if (selectedTest.value) {
-    const selected = selectedTest.value
+const openAddModal = async (type: TestType): Promise<void> => {
+  try {
     let parent: string | null = null
     let chapter: string | null = null
     let section: string | null = null
-    let defaultType: TestType = 'test-case' // Type par défaut
+    const defaultType: TestType = type // Utiliser le type passé en paramètre
+    let number: string | undefined = undefined
 
-    // Définir parent/chapter/type selon le type du noeud sélectionné
-    if (selected.type === 'chapter') {
-      // Si on sélectionne un chapitre, créer un test-case dedans par défaut
-      // (l'utilisateur peut changer en 'section' dans le modal s'il veut)
-      defaultType = 'test-case'
-      chapter = selected.number || null
-      parent = null
-    } else if (selected.type === 'section') {
-      // Si on sélectionne une section, créer un test-case dedans
-      defaultType = 'test-case'
-      parent = selected.number || null
-      chapter = selected.chapter || null
-    } else if (selected.type === 'procedure') {
-      // Si on sélectionne une procédure, créer une autre procédure
-      defaultType = 'procedure'
-      parent = null
-      chapter = null
-    } else if (selected.type === 'test-case') {
-      // Si on sélectionne un test case, créer un test case au même niveau
-      defaultType = 'test-case'
-      parent = selected.parent
-      chapter = selected.chapter
-      section = selected.section
+    // Si un test est sélectionné, utiliser son contexte pour définir parent/chapter
+    if (selectedTest.value) {
+      const selected = selectedTest.value
+
+      if (type === 'section') {
+        // Pour une section, utiliser le chapitre sélectionné si c'est un chapitre
+        if (selected.type === 'chapter') {
+          chapter = selected.number || null
+        } else {
+          chapter = selected.chapter || null
+        }
+        parent = null
+      } else if (type === 'test-case') {
+        // Pour un test-case, utiliser le contexte de la sélection
+        if (selected.type === 'chapter') {
+          chapter = selected.number || null
+        } else {
+          chapter = selected.chapter || null
+        }
+        parent = null
+      } else if (type === 'procedure' || type === 'chapter') {
+        // Procédures et chapitres n'ont pas de parent
+        parent = null
+        chapter = null
+      }
     }
 
-    testToEdit.value = {
-      _id: '',
+    // Générer un ID unique et un numéro temporaire
+    const timestamp = Date.now()
+    const newId = `${defaultType}_${timestamp}`
+
+    // Créer l'élément avec des placeholders selon le type
+    const newTest: AtpTest = {
+      _id: newId,
       type: defaultType,
-      title: '',
+      title: `[New ${defaultType}]`,
       parent,
       chapter,
       section,
-      timestamp: new Date().toISOString()
-    } as AtpTest
-  } else {
-    testToEdit.value = null
-  }
-  isEditModalOpen.value = true
-}
-
-const openEditModal = (test: AtpTest): void => {
-  testToEdit.value = test
-  isEditModalOpen.value = true
-}
-
-const closeEditModal = (): void => {
-  isEditModalOpen.value = false
-  testToEdit.value = null
-}
-
-const handleSaveTest = async (test: AtpTest): Promise<void> => {
-  try {
-    // Mode édition uniquement si testToEdit a un _id valide (non vide)
-    const isEditMode = !!(testToEdit.value && testToEdit.value._id)
-
-    if (isEditMode) {
-      // Capturer l'état d'expansion avant le reload
-      const procedureExpandedState = captureExpandedState(procedureTree.value)
-      const testCaseExpandedState = captureExpandedState(testCaseTree.value)
-
-      // Mise à jour
-      await atpDatabaseService.updateTest(test)
-      showNotification('success', 'Test mis à jour avec succès')
-
-      // Mettre à jour le test sélectionné si c'est celui en cours
-      if (selectedTest.value?._id === test._id) {
-        selectedTest.value = test
-      }
-
-      // Fermer la modal et recharger
-      closeEditModal()
-      await loadTests()
-
-      // Restaurer l'état d'expansion
-      procedureTree.value = restoreExpandedState(procedureTree.value, procedureExpandedState)
-      testCaseTree.value = restoreExpandedState(testCaseTree.value, testCaseExpandedState)
-    } else {
-      // Création d'un nouveau test
-
-      // Capturer l'état d'expansion avant le reload
-      const procedureExpandedState = captureExpandedState(procedureTree.value)
-      const testCaseExpandedState = captureExpandedState(testCaseTree.value)
-
-      // Calculer l'ordre basé sur le test sélectionné
-      if (selectedTest.value && selectedTest.value.type === test.type) {
-        // Si un test du même type est sélectionné, insérer après celui-ci
-        if (selectedTest.value.order !== undefined) {
-          test.order = selectedTest.value.order + 0.5
-        } else {
-          test.order = 1
-        }
-      } else {
-        // Sinon, ajouter à la fin de la liste du même type/parent/chapter
-        const sameTypeTests = tests.value.filter(t =>
-          t.type === test.type &&
-          t.parent === (test.parent || null) &&
-          t.chapter === (test.chapter || null)
-        )
-        const maxOrder = sameTypeTests.reduce((max, t) =>
-          Math.max(max, t.order || 0), -1
-        )
-        test.order = maxOrder + 1
-      }
-
-      console.log('Creating test:', {
-        _id: test._id,
-        type: test.type,
-        title: test.title,
-        number: test.number,
-        testId: test.testId,
-        parent: test.parent,
-        chapter: test.chapter,
-        order: test.order
-      })
-
-      await atpDatabaseService.saveTest(test)
-      console.log('Test saved to database')
-
-      // Réorganiser les ordres si nécessaire
-      await reorderSiblings(test.parent || null, test.chapter || null)
-      console.log('Siblings reordered')
-
-      showNotification('success', 'Test créé avec succès')
-
-      // Sauvegarder l'ID du nouveau test pour le sélectionner après le reload
-      const newTestId = test._id
-
-      // Fermer la modal
-      closeEditModal()
-
-      // Recharger les tests
-      await loadTests()
-
-      // Restaurer l'état d'expansion
-      procedureTree.value = restoreExpandedState(procedureTree.value, procedureExpandedState)
-      testCaseTree.value = restoreExpandedState(testCaseTree.value, testCaseExpandedState)
-
-      // Auto-expand jusqu'au nouveau test pour qu'il soit visible
-      if (test.type === 'procedure') {
-        // Les procédures sont déjà visibles (pas de hiérarchie)
-      } else {
-        // Pour les test cases, expand les parents
-        testCaseTree.value = expandToNode(testCaseTree.value, newTestId)
-      }
-
-      // Sélectionner automatiquement le nouveau test
-      const newTest = tests.value.find(t => t._id === newTestId)
-      if (newTest) {
-        selectedTest.value = newTest
-      }
+      timestamp: new Date().toISOString(),
+      order: 999999 // Sera réorganisé après
     }
+
+    // Ajouter des champs spécifiques selon le type
+    if (defaultType === 'chapter' || defaultType === 'section') {
+      const count = tests.value.filter(t => t.type === defaultType).length + 1
+      newTest.number = defaultType === 'chapter' ? `${count}` : `${chapter}.${count}`
+    } else if (defaultType === 'test-case') {
+      newTest.testId = 'NEW-TC-001'
+      newTest.useCase = ''
+      newTest.scenario = ''
+      newTest.testPurpose = ''
+      newTest.testStrategy = ''
+      newTest.prerequisites = ''
+      newTest.preamble = ''
+      newTest.testBody = ''
+      newTest.testBodySteps = ['']
+      newTest.postamble = ''
+      newTest.comment = ''
+    } else if (defaultType === 'procedure') {
+      newTest.references = ''
+      newTest.testPurpose = ''
+      newTest.procedureBody = ''
+      newTest.procedureSteps = ['']
+    }
+
+    // Sauvegarder immédiatement
+    await atpDatabaseService.saveTest(newTest)
+
+    // Réorganiser les ordres
+    await reorderSiblings(parent || null, chapter || null)
+
+    // Recharger et sélectionner le nouvel élément
+    await loadTests()
+
+    // Sélectionner et auto-expand au nouveau test
+    selectedTest.value = tests.value.find(t => t._id === newId) || null
+
+    if (defaultType === 'procedure') {
+      procedureTree.value = expandToNode(procedureTree.value, newId)
+    } else {
+      testCaseTree.value = expandToNode(testCaseTree.value, newId)
+    }
+
+    showNotification('success', 'Élément créé - modifiez les champs dans le panneau de droite')
   } catch (error) {
-    console.error('Error saving test:', error)
-    showNotification('error', 'Erreur lors de la sauvegarde du test')
+    console.error('Error creating test:', error)
+    showNotification('error', 'Erreur lors de la création')
   }
 }
 

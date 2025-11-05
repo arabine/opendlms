@@ -92,6 +92,55 @@
 
     <!-- Contenu -->
     <div class="p-6 space-y-6">
+      <!-- Champs détaillés du CHAPITRE (si applicable) -->
+      <div v-if="test.type === 'chapter'" class="space-y-4">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Détails du chapitre</h3>
+
+        <!-- Number -->
+        <div class="bg-green-50 rounded-lg p-4">
+          <div class="text-xs font-semibold text-green-600 uppercase mb-2">Number</div>
+          <input
+            v-if="isEditing"
+            v-model="editableTest.number"
+            type="text"
+            class="w-full border border-green-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-green-500"
+            placeholder="Numéro du chapitre (ex: 1, 2, 3...)"
+          />
+          <div v-else class="text-sm text-gray-900">{{ test.number || 'N/A' }}</div>
+        </div>
+      </div>
+
+      <!-- Champs détaillés de la SECTION (si applicable) -->
+      <div v-if="test.type === 'section'" class="space-y-4">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Détails de la section</h3>
+
+        <!-- Number -->
+        <div class="bg-yellow-50 rounded-lg p-4">
+          <div class="text-xs font-semibold text-yellow-600 uppercase mb-2">Number</div>
+          <input
+            v-if="isEditing"
+            v-model="editableTest.number"
+            type="text"
+            class="w-full border border-yellow-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-yellow-500"
+            placeholder="Numéro de section (ex: 1.1, 1.2...)"
+          />
+          <div v-else class="text-sm text-gray-900">{{ test.number || 'N/A' }}</div>
+        </div>
+
+        <!-- Chapter -->
+        <div class="bg-yellow-50 rounded-lg p-4">
+          <div class="text-xs font-semibold text-yellow-600 uppercase mb-2">Chapter</div>
+          <input
+            v-if="isEditing"
+            v-model="editableTest.chapter"
+            type="text"
+            class="w-full border border-yellow-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-yellow-500"
+            placeholder="Numéro du chapitre parent"
+          />
+          <div v-else class="text-sm text-gray-900">{{ test.chapter || 'N/A' }}</div>
+        </div>
+      </div>
+
       <!-- Champs détaillés de la PROCÉDURE (si applicable) -->
       <div v-if="test.type === 'procedure'" class="space-y-4">
         <h3 class="text-lg font-semibold text-gray-800 mb-3">Détails de la procédure</h3>
@@ -184,6 +233,19 @@
       <!-- Champs détaillés du TEST CASE (si applicable) -->
       <div v-if="test.type === 'test-case'" class="space-y-4">
         <h3 class="text-lg font-semibold text-gray-800 mb-3">Détails du test case</h3>
+
+        <!-- Test ID -->
+        <div class="bg-green-50 rounded-lg p-4">
+          <div class="text-xs font-semibold text-green-600 uppercase mb-2">Test ID</div>
+          <input
+            v-if="isEditing"
+            v-model="editableTest.testId"
+            type="text"
+            class="w-full border border-green-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-green-500"
+            placeholder="Ex: ACESM-CV-TC01"
+          />
+          <div v-else class="text-sm text-gray-900 font-mono">{{ test.testId || 'N/A' }}</div>
+        </div>
 
         <!-- Use Case & Scenario en ligne -->
         <div class="grid grid-cols-2 gap-4">

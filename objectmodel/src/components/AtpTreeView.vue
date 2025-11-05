@@ -1,25 +1,14 @@
 <template>
   <div class="h-full flex flex-col">
-    <!-- Barre de recherche avec bouton Ajouter -->
+    <!-- Barre de recherche -->
     <div class="bg-white p-4 border-b border-gray-200">
-      <div class="flex gap-2">
-        <input
-          v-model="localSearchQuery"
-          type="text"
-          placeholder="Rechercher..."
-          class="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          @input="emitSearchChange"
-        />
-        <button
-          @click="emit('add-test')"
-          class="flex-shrink-0 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          <span class="hidden sm:inline">Ajouter</span>
-        </button>
-      </div>
+      <input
+        v-model="localSearchQuery"
+        type="text"
+        placeholder="Rechercher... (Clic droit pour ajouter)"
+        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        @input="emitSearchChange"
+      />
     </div>
 
     <!-- Onglets -->
@@ -166,9 +155,41 @@
         left: contextMenu.x + 'px',
         zIndex: 1000
       }"
-      class="bg-white shadow-lg rounded-md border border-gray-200 py-1 min-w-[160px]"
+      class="bg-white shadow-lg rounded-md border border-gray-200 py-1 min-w-[180px]"
       @click.stop
     >
+      <!-- Options de création selon l'onglet -->
+      <div v-if="activeTab === 'testcases'">
+        <button
+          @click="handleAddNew('chapter')"
+          class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+        >
+          <span>📚</span> Nouveau chapitre
+        </button>
+        <button
+          @click="handleAddNew('section')"
+          class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+        >
+          <span>📄</span> Nouvelle section
+        </button>
+        <button
+          @click="handleAddNew('test-case')"
+          class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+        >
+          <span>🧪</span> Nouveau test case
+        </button>
+        <hr class="my-1 border-gray-200" />
+      </div>
+      <div v-else-if="activeTab === 'procedures'">
+        <button
+          @click="handleAddNew('procedure')"
+          class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+        >
+          <span>📋</span> Nouvelle procédure
+        </button>
+        <hr class="my-1 border-gray-200" />
+      </div>
+
       <button
         @click="handleCopy"
         class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
@@ -224,7 +245,7 @@ const emit = defineEmits<{
   (e: 'paste-node', data: { copiedNode: AtpTreeNode, targetNode: AtpTreeNode }): void
   (e: 'duplicate-node', node: AtpTreeNode): void
   (e: 'delete-node', id: string): void
-  (e: 'add-test'): void
+  (e: 'add-test', type: 'chapter' | 'section' | 'test-case' | 'procedure'): void
 }>()
 
 const localSearchQuery = ref<string>(props.searchQuery)
@@ -370,6 +391,11 @@ const closeContextMenu = () => {
 }
 
 // Actions du menu contextuel
+const handleAddNew = (type: 'chapter' | 'section' | 'test-case' | 'procedure') => {
+  emit('add-test', type)
+  closeContextMenu()
+}
+
 const handleCopy = () => {
   if (contextMenu.value.node) {
     copiedNode.value = contextMenu.value.node
